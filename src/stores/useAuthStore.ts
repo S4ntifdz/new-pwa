@@ -4,9 +4,11 @@ import { AuthState } from '../types';
 import { apiClient } from '../lib/api';
 
 interface AuthStore extends AuthState {
-  setToken: (token: string) => void;
+  setSessionToken: (sessionToken: string) => void;
+  setIdentifier: (identifier: string) => void;
   setTableId: (tableId: string) => void;
-  validateToken: (token: string) => Promise<boolean>;
+  setSessionId: (sessionId: string) => void;
+  validateSession: (identifier: string) => Promise<boolean>;
   logout: () => void;
   setError: (error: string | null) => void;
   setValidating: (isValidating: boolean) => void;
@@ -16,66 +18,80 @@ export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
       isAuthenticated: false,
-      token: null,
+      sessionToken: null,
       isValidating: false,
       error: null,
       tableId: null,
+      sessionId: null,
+      identifier: null,
 
-      setToken: (token: string) => {
-        apiClient.setToken(token);
-        set({ token, isAuthenticated: true });
+      setSessionToken: (sessionToken: string) => {
+        apiClient.setSessionToken(sessionToken);
+        set({ sessionToken, isAuthenticated: true });
+      },
+
+      setIdentifier: (identifier: string) => {
+        apiClient.setIdentifier(identifier);
+        set({ identifier });
       },
 
       setTableId: (tableId: string) => {
         set({ tableId });
       },
 
-      validateToken: async (token: string) => {
-        set({ isValidating: true, error: null });
-        
-        console.log('Starting token validation for:', token.substring(0, 20) + '...');
-        
-        try {
-          apiClient.setToken(token);
-          
-          const isValid = await apiClient.validateJWT();
-          
-          console.log('Token validation result:', isValid);
-          
-          if (isValid === true) {
-            set({ 
-              token, 
-              isAuthenticated: true, 
-              isValidating: false,
-              error: null 
-            });
-            return true;
-          } else {
-            set({ 
-              token: null, 
-              isAuthenticated: false, 
-              isValidating: false,
-              error: 'Token inválido o expirado' 
-            });
-            return false;
-          }
-        } catch (error) {
-          console.error('Token validation error:', error);
-          set({ 
-            token: null, 
-            isAuthenticated: false, 
-            isValidating: false,
-            error: 'Error de conexión con el servidor' 
-          });
-          return false;
-        }
+      setSessionId: (sessionId: string) => {
+        set({ sessionId });
       },
+validateSession: async (identifier: string, qrToken: string) => {
+  set({ isValidating: true, error: null });
+
+  try {
+    apiClient.setIdentifier(identifier);
+
+    // Aquí pasamos el QR token
+    const response = await apiClient.validateSession(qrToken);
+
+    if (response.valid && response.session_token) {
+      apiClient.setSessionToken(response.session_token);
+      set({ 
+        sessionToken: response.session_token,
+        identifier,
+        isAuthenticated: true, 
+        isValidating: false,
+        error: null 
+      });
+      return true;
+    } else {
+      set({ 
+        sessionToken: null,
+        identifier: null,
+        isAuthenticated: false, 
+        isValidating: false,
+        error: 'Sesión inválida o expirada' 
+      });
+      return false;
+    }
+  } catch (error) {
+    console.error('Session validation error:', error);
+    set({ 
+      sessionToken: null,
+      identifier: null,
+      isAuthenticated: false, 
+      isValidating: false,
+      error: 'Error de conexión con el servidor' 
+    });
+    return false;
+  }
+}
+,
 
       logout: () => {
         set({ 
           isAuthenticated: false, 
-          token: null, 
+          sessionToken: null,
+          identifier: null,
           tableId: null,
+          sessionId: null,
           error: null 
         });
       },
@@ -91,8 +107,10 @@ export const useAuthStore = create<AuthStore>()(
     {
       name: 'auth-storage',
       partialize: (state) => ({ 
-        token: state.token, 
-        tableId: state.tableId 
+        sessionToken: state.sessionToken,
+        identifier: state.identifier,
+        tableId: state.tableId,
+        sessionId: state.sessionId
       }),
     }
   )

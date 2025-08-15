@@ -1,18 +1,19 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://d0638a438f78.ngrok-free.app';
 
 export class ApiClient {
-  private token: string | null = null;
+  private sessionToken: string | null = null;
+  private identifier: string | null = null;
 
-  setToken(token: string) {
-    this.token = token;
+  setSessionToken(sessionToken: string) {
+    this.sessionToken = sessionToken;
+  }
+
+  setIdentifier(identifier: string) {
+    this.identifier = identifier;
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE}/api/v1${endpoint}`;
-    
-    console.log('Making API request to:', url);
-    console.log('With token:', this.token ? 'Present' : 'Missing');
-    console.log('Request options:', options);
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -20,9 +21,12 @@ export class ApiClient {
       ...options.headers,
     };
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-      console.log('Authorization header set');
+    if (this.sessionToken) {
+      headers['Authorization'] = `Bearer ${this.sessionToken}`;
+    }
+
+    if (this.identifier) {
+      headers['x-identifier'] = this.identifier;
     }
 
     try {
@@ -31,85 +35,78 @@ export class ApiClient {
         headers,
       });
 
-      console.log('API Response status:', response.status);
-      console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
-      
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          console.log('Unauthorized response received');
           throw new Error('UNAUTHORIZED');
         }
         const errorText = await response.text();
-        console.error('API Error response:', errorText);
         throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
 
       // Get the raw response text first
       const responseText = await response.text();
-      console.log('Raw response text:', responseText);
       
       const contentType = response.headers.get('content-type');
-      console.log('Content-Type header:', contentType);
       
       if (contentType && contentType.includes('application/json')) {
         try {
           const jsonResponse = JSON.parse(responseText);
-          console.log('Parsed JSON response:', jsonResponse);
           return jsonResponse;
         } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          console.error('Response text that failed to parse:', responseText);
           throw new Error('Invalid JSON response from server');
         }
       } else {
-        console.log('Response is not JSON. Content-Type:', contentType);
-        console.log('Response text:', responseText);
-        
         // Try to parse as JSON anyway, in case the content-type header is wrong
         try {
           const jsonResponse = JSON.parse(responseText);
-        console.log('API JSON Response data:', jsonResponse);
-        return jsonResponse;
+          return jsonResponse;
         } catch (parseError) {
-          console.error('Response is not JSON and cannot be parsed:', parseError);
           throw new Error(`Server returned non-JSON response: ${responseText}`);
         }
       }
     } catch (error) {
-      console.error('API Error:', error);
       throw error;
     }
   }
 
   // Authentication
-  async validateJWT(): Promise<boolean> {
+async validateSession(token?: string) {
+  try {
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (this.identifier) {
+      headers['x-identifier'] = this.identifier;
+    }
+    return await this.request<{ valid: boolean; session_token: string }>('/validate-jwt', {
+      method: 'GET',
+      headers,
+    });
+  } catch (error) {
+    console.error('Session validation failed:', error);
+    return { valid: false };
+  }
+}
+
+
+  // Client orders
+  async getClientUnpaidOrders() {
     try {
-      console.log('Validating JWT...');
-      
-      const response = await this.request<{valid: boolean, table_uuid: string}>('/validate-jwt/');
-      console.log('JWT validation response:', response);
-      
-      // Check if response has valid property and it's true
-      if (response && typeof response === 'object' && response.valid === true) {
-        console.log('JWT validation successful - valid field is true');
-        return true;
-      }
-      
-      console.log('JWT validation failed - valid field is not true');
-      return false;
+      return this.request('/orders/client-unpaid-orders');
     } catch (error) {
-      console.error('JWT validation failed:', error);
-      return false;
+      console.error('Failed to get client unpaid orders:', error);
+      throw error;
     }
   }
 
-  async getTableUuidFromJWT(): Promise<string | null> {
+  // Open sessions
+  async getOpenSessions() {
     try {
-      const response = await this.request<{valid: boolean, table_uuid: string}>('/validate-jwt/');
-      return response.table_uuid;
+      return this.request('/tables/open-sessions');
     } catch (error) {
-      console.error('Failed to get table UUID:', error);
-      return null;
+      console.error('Failed to get open sessions:', error);
+      throw error;
     }
   }
 
@@ -120,8 +117,8 @@ export class ApiClient {
     });
   }
 
-  async cancelWaiterCall(tableId: string): Promise<void> {
-    return this.request(`/api/v1/call-cancel/`, {
+  async cancelWaiterCall(): Promise<void> {
+    return this.request(`/call-cancel/`, {
       method: 'POST',
     });
   }
@@ -158,7 +155,7 @@ export class ApiClient {
   }
 
   // Payments
-  async createPayment(payment: { method: string; amount: string }) {
+  async createPayment(payment: { method: string; amount: string }): Promise<PaymentResponse> {
     return this.request('/payments/', {
       method: 'POST',
       body: JSON.stringify(payment),

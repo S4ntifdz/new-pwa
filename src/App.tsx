@@ -9,8 +9,9 @@ import { CartPage } from './pages/CartPage';
 import { PaymentPage } from './pages/PaymentPage';
 import { ConfirmationPage } from './pages/ConfirmationPage';
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
+import { IdentificationPage } from './pages/IdentificationPage';
+import { PaymentSplitPage } from './pages/PaymentSplitPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { JWTTokenPage } from './pages/JWTTokenPage';
 
 function App() {
   const { isDark } = useThemeStore();
@@ -35,11 +36,8 @@ function App() {
     <Router>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
         <Routes>
-          {/* Loading/Auth Route */}
-          <Route path="/loading/:tableId" element={<LoadingPage />} />
-          
-          {/* JWT Token Route - for URLs like /jwt-token */}
-          <Route path="/:token" element={<JWTTokenPage />} />
+          {/* Identification Route - for JWT tokens */}
+          <Route path="/:token" element={<IdentificationPage />} />
           
           {/* Error Route */}
           <Route path="/error" element={<ErrorPage />} />
@@ -82,6 +80,15 @@ function App() {
           />
           
           <Route 
+            path="/payment-split/:tableId" 
+            element={
+              <ProtectedRoute>
+                <PaymentSplitPage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
             path="/payment/:tableId" 
             element={
               <ProtectedRoute>
@@ -100,7 +107,7 @@ function App() {
           />
           
           {/* Redirect root to loading with a sample table ID */}
-          <Route path="/" element={<Navigate to="/loading/sample-table-id" replace />} />
+          <Route path="/" element={<Navigate to="/error" replace />} />
           
           {/* Catch all route */}
           <Route path="*" element={<Navigate to="/error" replace />} />

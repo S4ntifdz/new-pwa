@@ -66,10 +66,12 @@ export interface Table {
 
 export interface AuthState {
   isAuthenticated: boolean;
-  token: string | null;
+  sessionToken: string | null;
   isValidating: boolean;
   error: string | null;
   tableId: string | null;
+  sessionId: string | null;
+  identifier: string | null;
 }
 
 export interface PaymentMethod {
@@ -105,4 +107,30 @@ export interface UnpaidOrdersResponse {
   orders: Order[];
   total_amount_owed: number;
   unpaid_orders_count: number;
+}
+
+export interface SessionValidationResponse {
+  valid: boolean;
+  session_token: string;
+}
+
+export interface ClientUnpaidOrdersResponse {
+  session_id: string;
+  table_uuid: string;
+  table_number: number;
+  orders: Order[];
+  total_amount_owed: number;
+  unpaid_orders_count: number;
+}
+
+export interface OpenSessionsResponse {
+  table_uuid: string;
+  open_sessions: number;
+}
+
+export interface PaymentResponse {
+  message: string;
+  amount_paid: string;
+  total_due: string;
+  all_paid: boolean;
 }
