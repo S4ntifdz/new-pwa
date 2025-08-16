@@ -84,42 +84,47 @@ export function PaymentPage() {
       loadOrders();
     }
   }, [paymentType, tableId]);
+const handlePayment = async () => {
+  if (!tableId || !ordersToShow) return;
 
-  const handlePayment = async () => {
-    if (!tableId || !ordersToShow) return;
-    
-    setProcessing(true);
-    
-    try {
-      // Create payment with API
-      const paymentData = {
-        method: selectedPaymentMethod,
-        amount: ordersToShow.total_amount_owed.toString()
-      };
+  setProcessing(true);
 
-      console.log('Creating payment:', paymentData);
-      const response = await apiClient.createPayment(paymentData);
-      console.log('Payment created:', response);
-      
-      setPaymentCompleted(true);
-      
-      // Show QR modal if QR payment was selected
-      if (selectedPaymentMethod === 'qr') {
-        setShowQRModal(true);
-      } else {
-        // Show rating modal after 3 seconds for other payment methods
-        setTimeout(() => {
-          setShowRatingModal(true);
-        }, 3000);
-      }
-      
-    } catch (error) {
-      console.error('Error creating payment:', error);
-      alert('Error al procesar el pago. Intenta nuevamente.');
-    } finally {
-      setProcessing(false);
+  try {
+    const paymentData = {
+      method: selectedPaymentMethod,
+      amount: ordersToShow.total_amount_owed.toString()
+    };
+
+    let response;
+    if (paymentType === 'table') {
+      // Nuevo endpoint para pagar toda la mesa
+      response = await apiClient.request('/payments/all-table/', {
+        method: 'POST',
+        body: JSON.stringify(paymentData),
+      });
+    } else {
+      // Pago individual
+      response = await apiClient.createPayment(paymentData);
     }
-  };
+
+    console.log('Payment created:', response);
+
+    setPaymentCompleted(true);
+
+    if (selectedPaymentMethod === 'qr') {
+      setShowQRModal(true);
+    } else {
+      setTimeout(() => {
+        setShowRatingModal(true);
+      }, 3000);
+    }
+  } catch (error) {
+    console.error('Error creating payment:', error);
+    alert('Error al procesar el pago. Intenta nuevamente.');
+  } finally {
+    setProcessing(false);
+  }
+};
 
   const handleQRModalClose = () => {
     setShowQRModal(false);
