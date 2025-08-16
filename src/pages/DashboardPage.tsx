@@ -8,7 +8,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { useAuthStore } from '../stores/useAuthStore';
 import { apiClient } from '../lib/api';
 import { ClientUnpaidOrdersResponse, Offer } from '../types';
-import { Plus, CreditCard, Phone, X } from 'lucide-react';
+import { Plus, CreditCard, Phone, X, Bot} from 'lucide-react';
 
 export function DashboardPage() {
   const { tableId } = useParams<{ tableId: string }>();
@@ -42,8 +42,8 @@ export function DashboardPage() {
 
     loadData();
     
-    // Set up polling for order status updates every 3 seconds
-    const interval = setInterval(loadData, 10000);
+    // Set up polling for order status updates every 20 seconds
+    const interval = setInterval(loadData, 20000);
     
     return () => clearInterval(interval);
   }, [isAuthenticated, tableId, navigate, location.state]);
