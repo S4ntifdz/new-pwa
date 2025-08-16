@@ -8,7 +8,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { useAuthStore } from '../stores/useAuthStore';
 import { apiClient } from '../lib/api';
 import { ClientUnpaidOrdersResponse, Offer } from '../types';
-import { Plus, CreditCard, Phone, X, Bot} from 'lucide-react';
+import { Plus, CreditCard, Phone, X, Bot } from 'lucide-react';
 
 export function DashboardPage() {
   const { tableId } = useParams<{ tableId: string }>();
@@ -24,7 +24,18 @@ export function DashboardPage() {
   const [showWaiterModal, setShowWaiterModal] = useState(false);
   const [showCancelWaiterModal, setShowCancelWaiterModal] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
-  
+
+  // Poll for order updates every 3 seconds
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      loadUnpaidOrders();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate(`/loading/${tableId}`);
@@ -41,37 +52,37 @@ export function DashboardPage() {
     }
 
     loadData();
-    
-    // Set up polling for order status updates every 20 seconds
-    const interval = setInterval(loadData, 20000);
-    
-    return () => clearInterval(interval);
   }, [isAuthenticated, tableId, navigate, location.state]);
 
   const loadData = async () => {
+    if (!tableId) return;
 
     try {
-      if (!unpaidOrders) {
-        setLoading(true);
-      }
+      setLoading(true);
       setError(null);
       
       // Load client unpaid orders and offers
-      const [unpaidOrdersData, offersData] = await Promise.all([
-        apiClient.getClientUnpaidOrders(),
+      const [offersData] = await Promise.all([
         apiClient.getOffers()
       ]);
       
-      setUnpaidOrders(unpaidOrdersData);
       setOffers(offersData);
+      await loadUnpaidOrders();
       
     } catch (error) {
       console.error('Error loading data:', error);
-      if (!unpaidOrders) {
-        setError('Error al cargar los datos de la mesa');
-      }
+      setError('Error al cargar los datos de la mesa');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUnpaidOrders = async () => {
+    try {
+      const unpaidOrdersData = await apiClient.getClientUnpaidOrders();
+      setUnpaidOrders(unpaidOrdersData);
+    } catch (error) {
+      console.error('Error loading unpaid orders:', error);
     }
   };
 
@@ -99,7 +110,7 @@ export function DashboardPage() {
     if (!tableId) return;
     
     try {
-      await apiClient.cancelWaiterCall(tableId);
+      await apiClient.cancelWaiterCall();
       setWaiterCalled(false);
       setShowCancelWaiterModal(false);
     } catch (error) {
@@ -107,7 +118,7 @@ export function DashboardPage() {
       alert('Error al cancelar llamado. Intenta nuevamente.');
     }
   };
-
+  
   const getStatusText = (status: string) => {
     const statusMap: { [key: string]: string } = {
       'RECEIVED': 'Recibida',
