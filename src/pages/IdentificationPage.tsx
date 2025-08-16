@@ -72,7 +72,7 @@ export function IdentificationPage() {
             ¡Bienvenido!
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Para continuar, ingresa tu identificación
+            Para continuar, ingresa tu identificación.
           </p>
         </div>
 

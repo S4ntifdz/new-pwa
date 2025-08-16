@@ -31,7 +31,7 @@ export function ProductCard({ product }: ProductCardProps) {
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="aspect-[4/3] overflow-hidden">
         <img
-          src="/src/media/rapimozo_test_image.png"
+          src={product.image}
           alt={product.name}
           className="w-full h-full object-cover"
         />

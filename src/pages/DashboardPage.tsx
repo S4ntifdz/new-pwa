@@ -8,7 +8,7 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import { useAuthStore } from '../stores/useAuthStore';
 import { apiClient } from '../lib/api';
 import { ClientUnpaidOrdersResponse, Offer } from '../types';
-import { Plus, CreditCard, Phone, X, Bot } from 'lucide-react';
+import { Plus, CreditCard, Phone, X, Bot} from 'lucide-react';
 
 export function DashboardPage() {
   const { tableId } = useParams<{ tableId: string }>();
@@ -24,18 +24,7 @@ export function DashboardPage() {
   const [showWaiterModal, setShowWaiterModal] = useState(false);
   const [showCancelWaiterModal, setShowCancelWaiterModal] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
-
-  // Poll for order updates every 3 seconds
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const interval = setInterval(() => {
-      loadUnpaidOrders();
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
-
+  
   useEffect(() => {
     if (!isAuthenticated) {
       navigate(`/loading/${tableId}`);
@@ -52,37 +41,37 @@ export function DashboardPage() {
     }
 
     loadData();
+    
+    // Set up polling for order status updates every 20 seconds
+    const interval = setInterval(loadData, 20000);
+    
+    return () => clearInterval(interval);
   }, [isAuthenticated, tableId, navigate, location.state]);
 
   const loadData = async () => {
-    if (!tableId) return;
 
     try {
-      setLoading(true);
+      if (!unpaidOrders) {
+        setLoading(true);
+      }
       setError(null);
       
       // Load client unpaid orders and offers
-      const [offersData] = await Promise.all([
+      const [unpaidOrdersData, offersData] = await Promise.all([
+        apiClient.getClientUnpaidOrders(),
         apiClient.getOffers()
       ]);
       
+      setUnpaidOrders(unpaidOrdersData);
       setOffers(offersData);
-      await loadUnpaidOrders();
       
     } catch (error) {
       console.error('Error loading data:', error);
-      setError('Error al cargar los datos de la mesa');
+      if (!unpaidOrders) {
+        setError('Error al cargar los datos de la mesa');
+      }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadUnpaidOrders = async () => {
-    try {
-      const unpaidOrdersData = await apiClient.getClientUnpaidOrders();
-      setUnpaidOrders(unpaidOrdersData);
-    } catch (error) {
-      console.error('Error loading unpaid orders:', error);
     }
   };
 
@@ -110,7 +99,7 @@ export function DashboardPage() {
     if (!tableId) return;
     
     try {
-      await apiClient.cancelWaiterCall();
+      await apiClient.cancelWaiterCall(tableId);
       setWaiterCalled(false);
       setShowCancelWaiterModal(false);
     } catch (error) {
@@ -167,7 +156,7 @@ export function DashboardPage() {
         showCallWaiter
         onCallWaiter={handleCallWaiter}
       />
-
+ 
       <div className="p-4 space-y-6">
         {/* Chatbot Button */}
         <div className="flex justify-end">
@@ -179,6 +168,7 @@ export function DashboardPage() {
             Chatbot
           </button>
         </div>
+
 
         {/* Order Success Message */}
         {showOrderSuccess && (
@@ -249,9 +239,10 @@ export function DashboardPage() {
                     <div key={index} className="flex justify-between items-center">
                       <span className="text-orange-800 dark:text-orange-200">
                         {item.quantity}x {item.product_details?.name || item.offer_details?.name || 'Producto'}
+                        
                       </span>
                       <span className="text-sm text-orange-600 dark:text-orange-400">
-                        {getStatusText(order.status || 'RECEIVED')}
+                        {getStatusText(order.status)}
                       </span>
                     </div>
                   ))}
@@ -308,9 +299,31 @@ export function DashboardPage() {
           
           {unpaidOrders && unpaidOrders.total_amount_owed > 0 && (
             <button
-              onClick={() => navigate(`/payment-split/${tableId}`, { 
-                state: { unpaidOrders }
-              })}
+              onClick={() => {
+                // Check if there's more than one person at the table
+                apiClient.getOpenSessions().then(response => {
+                  if (response.open_sessions > 1) {
+                    // Show payment selection if more than one person
+                    navigate(`/payment-split/${tableId}`, { 
+                      state: { unpaidOrders } 
+                    });
+                  } else {
+                    // Go directly to payment if only one person
+                    navigate(`/payment/${tableId}`, {
+                      state: {
+                        paymentType: 'individual',
+                        unpaidOrders
+                      }
+                    });
+                  }
+                }).catch(error => {
+                  console.error('Error checking open sessions:', error);
+                  // Fallback to payment selection
+                  navigate(`/payment-split/${tableId}`, { 
+                    state: { unpaidOrders } 
+                  });
+                });
+              }}
               className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
             >
               <CreditCard className="w-5 h-5" />
@@ -385,7 +398,6 @@ export function DashboardPage() {
           </div>
         </div>
       )}
-
       {/* Chatbot Modal */}
       <ChatbotModal
         isOpen={showChatbot}
