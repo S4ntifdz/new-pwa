@@ -236,137 +236,124 @@ export function PaymentPage() {
             )}
           </div>
         </div>
+{/* Tip Section */}
+<div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+  <button
+    onClick={() => setShowTipSection(!showTipSection)}
+    className="w-full flex items-center justify-between"
+  >
+    <div className="flex items-center gap-3">
+      <Heart className="w-5 h-5 text-red-500" />
+      <span className="font-semibold text-gray-900 dark:text-white">
+        Dejar Propina
+      </span>
+    </div>
+    {showTipSection ? (
+      <ChevronUp className="w-5 h-5 text-gray-500" />
+    ) : (
+      <ChevronDown className="w-5 h-5 text-gray-500" />
+    )}
+  </button>
 
-        {/* Tip Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-          <button
-            onClick={() => setShowTipSection(!showTipSection)}
-            className="w-full flex items-center justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <Heart className="w-5 h-5 text-red-500" />
-              <span className="font-semibold text-gray-900 dark:text-white">
-                Dejar Propina
-              </span>
-            </div>
-            {showTipSection ? (
-              <ChevronUp className="w-5 h-5 text-gray-500" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-gray-500" />
-            )}
-          </button>
+  {showTipSection && (
+    <div className="mt-4 space-y-3">
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Selecciona un mozo para dejar propina:
+      </p>
 
-          {showTipSection && (
-            <div className="mt-4 space-y-3">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Selecciona un mozo para dejar propina:
-              </p>
-              
-              <div className="space-y-2">
-                {waiters.map((waiter) => (
-                  <label
-                    key={waiter.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedWaiter === waiter.id
-                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="waiter"
-                        value={waiter.id}
-                        checked={selectedWaiter === waiter.id}
-                        onChange={(e) => setSelectedWaiter(e.target.value)}
-                        className="sr-only"
-                      />
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                        selectedWaiter === waiter.id
-                          ? 'border-red-500 bg-red-500'
-                          : 'border-gray-300 dark:border-gray-600'
-                      }`}>
-                        {selectedWaiter === waiter.id && (
-                          <div className="w-2 h-2 bg-white rounded-full" />
-                        )}
-                      </div>
-                      <span className="text-gray-900 dark:text-white font-medium">
-                        {waiter.name}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {waiter.percentage}%
-                      </span>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        ${((ordersToShow?.total_amount_owed || 0) * waiter.percentage / 100).toFixed(2)}
-                      </div>
-                    </div>
-                  </label>
-                ))}
-                
-                {/* Custom Amount Option */}
-                <label
-                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                    selectedWaiter === 'custom'
-                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+      {/* Lista de mozos con scroll */}
+      <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+        {waiters.map((waiter) => (
+          <div key={waiter.id}>
+            <label
+              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                selectedWaiter === waiter.id
+                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  name="waiter"
+                  value={waiter.id}
+                  checked={selectedWaiter === waiter.id}
+                  onChange={(e) => setSelectedWaiter(e.target.value)}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    selectedWaiter === waiter.id
+                      ? 'border-red-500 bg-red-500'
+                      : 'border-gray-300 dark:border-gray-600'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="waiter"
-                      value="custom"
-                      checked={selectedWaiter === 'custom'}
-                      onChange={(e) => setSelectedWaiter(e.target.value)}
-                      className="sr-only"
-                    />
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                      selectedWaiter === 'custom'
-                        ? 'border-red-500 bg-red-500'
-                        : 'border-gray-300 dark:border-gray-600'
-                    }`}>
-                      {selectedWaiter === 'custom' && (
-                        <div className="w-2 h-2 bg-white rounded-full" />
-                      )}
-                    </div>
-                    <span className="text-gray-900 dark:text-white font-medium">
-                      Otro monto
-                    </span>
-                  </div>
-                  {selectedWaiter === 'custom' && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-600 dark:text-gray-400">$</span>
-                      <input
-                        type="number"
-                        value={customTipAmount}
-                        onChange={(e) => setCustomTipAmount(e.target.value)}
-                        placeholder="0.00"
-                        className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                        step="0.01"
-                        min="0"
-                      />
-                    </div>
+                  {selectedWaiter === waiter.id && (
+                    <div className="w-2 h-2 bg-white rounded-full" />
                   )}
-                </label>
-              </div>
-              
-              {selectedWaiter && (
-                <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <span className="text-green-800 dark:text-green-200 font-medium">
-                      Propina seleccionada:
-                    </span>
-                    <span className="text-green-900 dark:text-green-100 font-bold">
-                      ${calculateTipAmount().toFixed(2)}
-                    </span>
-                  </div>
                 </div>
-              )}
-            </div>
-          )}
+                <span className="text-gray-900 dark:text-white font-medium">
+                  {waiter.name}
+                </span>
+              </div>
+            </label>
+
+            {/* Si se selecciona este mozo, mostrar opciones */}
+            {selectedWaiter === waiter.id && (
+              <div className="mt-2 ml-7 space-x-2 flex items-center flex-wrap">
+                {[5, 10, 20].map((pct) => (
+                  <button
+                    key={pct}
+                    onClick={() => {
+                      setCustomTipAmount(null);
+                      setTipPercentage(pct);
+                    }}
+                    className={`px-3 py-1 rounded-full text-sm font-medium border ${
+                      tipPercentage === pct
+                        ? 'bg-red-500 text-white border-red-500'
+                        : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {pct}%
+                  </button>
+                ))}
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600 dark:text-gray-400">$</span>
+                  <input
+                    type="number"
+                    value={customTipAmount || ''}
+                    onChange={(e) => {
+                      setTipPercentage(null);
+                      setCustomTipAmount(e.target.value);
+                    }}
+                    placeholder="Otro"
+                    className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {(selectedWaiter && (tipPercentage || customTipAmount)) && (
+        <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+          <div className="flex justify-between items-center">
+            <span className="text-green-800 dark:text-green-200 font-medium">
+              Propina seleccionada:
+            </span>
+            <span className="text-green-900 dark:text-green-100 font-bold">
+              ${calculateTipAmount().toFixed(2)}
+            </span>
+          </div>
         </div>
+      )}
+    </div>
+  )}
+</div>
+
         {/* Payment Methods */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
