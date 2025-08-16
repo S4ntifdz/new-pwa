@@ -26,11 +26,11 @@ export function ConfirmationPage() {
 
         {/* Success Message */}
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          ¡Orden Confirmada!
+          ¡Orden Pagada!
         </h1>
         
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          Tu orden ha sido enviada a la cocina
+          Tu pago ha sido procesado exitosamente.
         </p>
 
         {/* Order Details */}
@@ -65,10 +65,10 @@ export function ConfirmationPage() {
         <div className="mb-6">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Estado:</p>
           <p className="text-orange-600 dark:text-orange-400 font-medium">
-            Recibida
+            Pagada
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-500">
-            Tiempo estimado: 15-20 minutos
+            En un lapso de hasta 2 horas recibirás tu comprobante por correo electrónico.
           </p>
         </div>
 

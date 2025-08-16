@@ -2,19 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { OffersCarousel } from '../components/OffersCarousel';
+import { ChatbotModal } from '../components/ChatbotModal';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { useAuthStore } from '../stores/useAuthStore';
 import { apiClient } from '../lib/api';
-import { UnpaidOrdersResponse, Offer } from '../types';
-import { Plus, CreditCard, Phone, X } from 'lucide-react';
+import { ClientUnpaidOrdersResponse, Offer } from '../types';
+import { Plus, CreditCard, Phone, X, Bot} from 'lucide-react';
 
 export function DashboardPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuthStore();
-  const [unpaidOrders, setUnpaidOrders] = useState<UnpaidOrdersResponse | null>(null);
+  const [unpaidOrders, setUnpaidOrders] = useState<ClientUnpaidOrdersResponse | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,8 @@ export function DashboardPage() {
   const [waiterCalled, setWaiterCalled] = useState(false);
   const [showWaiterModal, setShowWaiterModal] = useState(false);
   const [showCancelWaiterModal, setShowCancelWaiterModal] = useState(false);
-
+  const [showChatbot, setShowChatbot] = useState(false);
+  
   useEffect(() => {
     if (!isAuthenticated) {
       navigate(`/loading/${tableId}`);
@@ -39,18 +41,24 @@ export function DashboardPage() {
     }
 
     loadData();
+    
+    // Set up polling for order status updates every 20 seconds
+    const interval = setInterval(loadData, 20000);
+    
+    return () => clearInterval(interval);
   }, [isAuthenticated, tableId, navigate, location.state]);
 
   const loadData = async () => {
-    if (!tableId) return;
 
     try {
-      setLoading(true);
+      if (!unpaidOrders) {
+        setLoading(true);
+      }
       setError(null);
       
-      // Load unpaid orders and offers
+      // Load client unpaid orders and offers
       const [unpaidOrdersData, offersData] = await Promise.all([
-        apiClient.getUnpaidOrders(tableId),
+        apiClient.getClientUnpaidOrders(),
         apiClient.getOffers()
       ]);
       
@@ -59,7 +67,9 @@ export function DashboardPage() {
       
     } catch (error) {
       console.error('Error loading data:', error);
-      setError('Error al cargar los datos de la mesa');
+      if (!unpaidOrders) {
+        setError('Error al cargar los datos de la mesa');
+      }
     } finally {
       setLoading(false);
     }
@@ -101,9 +111,10 @@ export function DashboardPage() {
   const getStatusText = (status: string) => {
     const statusMap: { [key: string]: string } = {
       'RECEIVED': 'Recibida',
+      'ACEPTED': 'Aceptada',
       'IN_PREPARATION': 'En preparación',
-      'READY': 'Lista',
-      'DELIVERED': 'Entregada'
+      'DELIVERED': 'Entregada',
+      'CANCELED': 'Cancelada'
     };
     return statusMap[status] || status;
   };
@@ -145,8 +156,20 @@ export function DashboardPage() {
         showCallWaiter
         onCallWaiter={handleCallWaiter}
       />
-
+ 
       <div className="p-4 space-y-6">
+        {/* Chatbot Button */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowChatbot(true)}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full font-medium transition-colors flex items-center gap-2 shadow-lg"
+          >
+            <Bot className="w-4 h-4" />
+            Chatbot
+          </button>
+        </div>
+
+
         {/* Order Success Message */}
         {showOrderSuccess && (
           <div className="bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
@@ -201,7 +224,7 @@ export function DashboardPage() {
         {unpaidOrders && unpaidOrders.orders.length > 0 && (
           <div className="space-y-4">
             {unpaidOrders.orders.map((order) => (
-              <div key={order.id} className="bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <div key={order.uuid} className="bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="text-lg font-semibold text-orange-900 dark:text-orange-100">
                     Orden en Proceso
@@ -215,11 +238,11 @@ export function DashboardPage() {
                   {order.order_products.map((item, index) => (
                     <div key={index} className="flex justify-between items-center">
                       <span className="text-orange-800 dark:text-orange-200">
-{item.quantity}x {item.product_details?.name || item.offer_details?.name || 'Producto'}
+                        {item.quantity}x {item.product_details?.name || item.offer_details?.name || 'Producto'}
                         
                       </span>
                       <span className="text-sm text-orange-600 dark:text-orange-400">
-                        {getStatusText(order.status || 'RECEIVED')}
+                        {getStatusText(order.status)}
                       </span>
                     </div>
                   ))}
@@ -239,12 +262,12 @@ export function DashboardPage() {
             <div className="space-y-3">
               {unpaidOrders.orders.flatMap(order => 
                 order.order_products.map((item, index) => (
-                  <div key={`${order.id}-${index}`} className="flex justify-between items-center">
+                  <div key={`${order.uuid}-${index}`} className="flex justify-between items-center">
                     <span className="text-gray-700 dark:text-gray-300">
-{item.quantity}x {item.product_details?.name || item.offer_details?.name || 'Producto'}
+                      {item.quantity}x {item.product_details?.name || item.offer_details?.name || 'Producto'}
                     </span>
                     <span className="font-medium text-gray-900 dark:text-white">
-${((item.product_details?.price || item.offer_details?.price || 0) * item.quantity).toFixed(2)}
+                      ${((item.product_details?.price || item.offer_details?.price || 0) * item.quantity).toFixed(2)}
                     </span>
                   </div>
                 ))
@@ -276,9 +299,31 @@ ${((item.product_details?.price || item.offer_details?.price || 0) * item.quanti
           
           {unpaidOrders && unpaidOrders.total_amount_owed > 0 && (
             <button
-              onClick={() => navigate(`/payment/${tableId}`, { 
-                state: { unpaidOrders } 
-              })}
+              onClick={() => {
+                // Check if there's more than one person at the table
+                apiClient.getOpenSessions().then(response => {
+                  if (response.open_sessions > 1) {
+                    // Show payment selection if more than one person
+                    navigate(`/payment-split/${tableId}`, { 
+                      state: { unpaidOrders } 
+                    });
+                  } else {
+                    // Go directly to payment if only one person
+                    navigate(`/payment/${tableId}`, {
+                      state: {
+                        paymentType: 'individual',
+                        unpaidOrders
+                      }
+                    });
+                  }
+                }).catch(error => {
+                  console.error('Error checking open sessions:', error);
+                  // Fallback to payment selection
+                  navigate(`/payment-split/${tableId}`, { 
+                    state: { unpaidOrders } 
+                  });
+                });
+              }}
               className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
             >
               <CreditCard className="w-5 h-5" />
@@ -353,6 +398,11 @@ ${((item.product_details?.price || item.offer_details?.price || 0) * item.quanti
           </div>
         </div>
       )}
+      {/* Chatbot Modal */}
+      <ChatbotModal
+        isOpen={showChatbot}
+        onClose={() => setShowChatbot(false)}
+      />
     </div>
   );
 }
