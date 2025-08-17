@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Bot, User, ExternalLink } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Bot, User, ExternalLink, Mic } from 'lucide-react';
 
 interface ChatbotModalProps {
   isOpen: boolean;
@@ -8,7 +8,8 @@ interface ChatbotModalProps {
 
 interface Message {
   id: string;
-  text: string;
+  text?: string;
+  audioUrl?: string;
   isBot: boolean;
   timestamp: Date;
   isLink?: boolean;
@@ -26,13 +27,17 @@ export function ChatbotModal({ isOpen, onClose }: ChatbotModalProps) {
   ]);
 
   const [showOptions, setShowOptions] = useState(true);
+  const [inputText, setInputText] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   if (!isOpen) return null;
 
-  const addMessage = (text: string, isBot: boolean, isLink?: boolean, linkUrl?: string) => {
+  const addMessage = (content: { text?: string; audioUrl?: string }, isBot: boolean, isLink?: boolean, linkUrl?: string) => {
     const newMessage: Message = {
       id: Date.now().toString(),
-      text,
+      ...content,
       isBot,
       timestamp: new Date(),
       isLink,
@@ -42,33 +47,91 @@ export function ChatbotModal({ isOpen, onClose }: ChatbotModalProps) {
   };
 
   const handleOptionClick = (option: string) => {
-    // Add user message
-    addMessage(option, false);
+    addMessage({ text: option }, false);
     setShowOptions(false);
+    simulateBotResponse(option);
+  };
 
-    // Add bot response after a delay
+  const handleSend = () => {
+    if (!inputText.trim()) return;
+    addMessage({ text: inputText }, false);
+    setInputText('');
+    simulateBotResponse(inputText);
+  };
+
+  const simulateBotResponse = (userInput: string) => {
     setTimeout(() => {
-      switch (option) {
+      let responseText = 'Gracias por tu mensaje. Estoy procesando tu solicitud... Algo mas que quieras mientras tanto?';
+      switch (userInput) {
         case 'Quiero pedir la cuenta':
-          addMessage('Perfecto! Te genero un link de pago para que puedas pagar de forma segura:', true);
+          addMessage({ text: 'Perfecto! Te genero un link de pago para que puedas pagar de forma segura:' }, true);
           setTimeout(() => {
-            addMessage('🔗 Link de Pago Seguro - Toca aquí para pagar', true, true, 'https://ejemplo-pago.com/mesa-123');
+            addMessage({ text: '🔗 Link de Pago Seguro - Toca aquí para pagar' }, true, true, 'https://ejemplo-pago.com/mesa-123');
           }, 1000);
-          break;
+          return;
         case 'Quiero encargar':
-          addMessage('¡Excelente! Te redirijo al menú para que puedas hacer tu pedido. ¿Hay algo específico que te gustaría ordenar?', true);
+          responseText = '¡Excelente! Te redirijo al menú para que puedas hacer tu pedido. ¿Hay algo específico que te gustaría ordenar?';
           break;
         case 'Necesito ayuda':
-          addMessage('Estoy aquí para ayudarte. Puedes preguntarme sobre el menú, hacer pedidos, solicitar la cuenta o llamar al mozo. ¿Qué necesitas?', true);
+          responseText = 'Estoy aquí para ayudarte. Puedes preguntarme sobre el menú, hacer pedidos, solicitar la cuenta o llamar al mozo. ¿Qué necesitas?';
           break;
         case 'Llamar al mozo':
-          addMessage('¡Perfecto! He notificado al mozo que necesitas asistencia. Estará contigo en breve.', true);
+          responseText = '¡Perfecto! He notificado al mozo que necesitas asistencia. Estará contigo en breve.';
           break;
+        // For free text or audio, use generic or keyword-based
         default:
-          addMessage('Gracias por tu mensaje. ¿Hay algo más en lo que pueda ayudarte?', true);
+          if (userInput.toLowerCase().includes('cuenta')) {
+            addMessage({ text: 'Perfecto! Te genero un link de pago para que puedas pagar de forma segura:' }, true);
+            setTimeout(() => {
+              addMessage({ text: '🔗 Link de Pago Seguro - Toca aquí para pagar' }, true, true, 'https://ejemplo-pago.com/mesa-123');
+            }, 1000);
+            return;
+          } else if (userInput.toLowerCase().includes('encargar') || userInput.toLowerCase().includes('pedido')) {
+            responseText = '¡Excelente! Te redirijo al menú para que puedas hacer tu pedido. ¿Hay algo específico que te gustaría ordenar?';
+          } else if (userInput.toLowerCase().includes('ayuda')) {
+            responseText = 'Estoy aquí para ayudarte. Puedes preguntarme sobre el menú, hacer pedidos, solicitar la cuenta o llamar al mozo. ¿Qué necesitas?';
+          } else if (userInput.toLowerCase().includes('mozo')) {
+            responseText = '¡Perfecto! He notificado al mozo que necesitas asistencia. Estará contigo en breve.';
+          }
       }
+      addMessage({ text: responseText }, true);
       setShowOptions(true);
     }, 1000);
+  };
+
+  const toggleRecording = async () => {
+    if (!isRecording) {
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          audioChunksRef.current.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          addMessage({ audioUrl }, false);
+          simulateBotResponse('Mensaje de audio recibido'); // Generic response for audio
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+        // Handle permission denied or other errors
+      }
+    } else {
+      // Stop recording
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+    }
   };
 
   const quickOptions = [
@@ -135,6 +198,8 @@ export function ChatbotModal({ isOpen, onClose }: ChatbotModalProps) {
                       {message.text}
                       <ExternalLink className="w-4 h-4" />
                     </button>
+                  ) : message.audioUrl ? (
+                    <audio controls src={message.audioUrl} className="max-w-full" />
                   ) : (
                     <p className="text-sm">{message.text}</p>
                   )}
@@ -168,6 +233,30 @@ export function ChatbotModal({ isOpen, onClose }: ChatbotModalProps) {
             </div>
           </div>
         )}
+
+        {/* Input Bar */}
+        <div className="p-1 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2">
+          <button
+            onClick={toggleRecording}
+            className={`p-2 rounded-full ${isRecording ? 'bg-red-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'} hover:opacity-90`}
+          >
+            <Mic className="w-5 h-5" />
+          </button>
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Escribe tu mensaje..."
+            className="flex-1 p-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+          />
+          <button
+            onClick={handleSend}
+            className="p-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Enviar
+          </button>
+        </div>
       </div>
     </div>
   );

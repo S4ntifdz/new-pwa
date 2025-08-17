@@ -69,7 +69,7 @@ export function CartPage() {
             >
               <div className="flex items-start gap-3">
                 <img
-                  src="/src/media/rapimozo_test_image.png"
+                  src={item.product.image}
                   alt={item.product.name}
                   className="w-16 h-16 rounded-lg object-cover"
                 />

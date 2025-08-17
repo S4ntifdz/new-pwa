@@ -4,12 +4,12 @@ import { ErrorMessage } from '../components/ErrorMessage';
 
 export function ErrorPage() {
   const location = useLocation();
-  const error = location.state?.error || 'Ha ocurrido un error inesperado';
+  const error = location.state?.error || 'Durante la POC se recomienda no refrescar la página. Por favor vuelva a escanear el QR.';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
       <ErrorMessage
-        title="Acceso No Autorizado"
+        title="Oops, algo salió mal"
         message={error}
         action={
           <button
