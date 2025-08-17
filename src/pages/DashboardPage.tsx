@@ -161,7 +161,7 @@ export function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header
-        title={`Mesa ${unpaidOrders?.table_number || '?'}`}
+        title={`Mesa ${unpaidOrders?.table_number || ''}`}
         tableNumber={unpaidOrders?.table_number}
         tableStatus="Ocupada"
         showCallWaiter
