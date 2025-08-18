@@ -19,7 +19,7 @@ export class ApiClient {
       'Content-Type': 'application/json',
       'ngrok-skip-browser-warning': 'true',
       ...options.headers,
-    };
+    };  
 
     if (this.sessionToken) {
       headers['Authorization'] = `Bearer ${this.sessionToken}`;
@@ -32,7 +32,8 @@ export class ApiClient {
     try {
       const response = await fetch(url, {
         ...options,
-        headers,
+  headers,
+  credentials: 'include',
       });
 
       if (!response.ok) {
