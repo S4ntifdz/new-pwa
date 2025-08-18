@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://comanda-ya-poc.onrender.com';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://poc-comanda-ya.onrender.com';
 
 export class ApiClient {
   private sessionToken: string | null = null;
