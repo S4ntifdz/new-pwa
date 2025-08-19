@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://d0638a438f78.ngrok-free.app';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 export class ApiClient {
   private sessionToken: string | null = null;
@@ -19,7 +19,7 @@ export class ApiClient {
       'Content-Type': 'application/json',
       'ngrok-skip-browser-warning': 'true',
       ...options.headers,
-    };
+    };  
 
     if (this.sessionToken) {
       headers['Authorization'] = `Bearer ${this.sessionToken}`;
@@ -32,7 +32,8 @@ export class ApiClient {
     try {
       const response = await fetch(url, {
         ...options,
-        headers,
+  headers,
+  credentials: 'include',
       });
 
       if (!response.ok) {
