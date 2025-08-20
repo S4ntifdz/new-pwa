@@ -105,8 +105,8 @@ export function MenuPage() {
               }`}
             >
               {category.name}
-            </button> */}
-          {/* ))} */}
+            </button>
+          ))} */}
         </div>
       </div>
 
