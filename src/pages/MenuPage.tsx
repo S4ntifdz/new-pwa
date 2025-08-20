@@ -94,7 +94,7 @@ export function MenuPage() {
           >
             🎉 Ofertas
           </button>
-          {categories.map((category) => (
+          {/* {categories.map((category) => (
             <button
               key={category.id}
               onClick={() => setActiveCategory(category.id.toString())}
@@ -106,7 +106,7 @@ export function MenuPage() {
             >
               {category.name}
             </button>
-          ))}
+          ))} */}
         </div>
       </div>
 
