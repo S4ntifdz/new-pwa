@@ -1,197 +1,282 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Header } from '../components/Header';
-import { OffersCarousel } from '../components/OffersCarousel';
-import { ChatbotModal } from '../components/ChatbotModal';
-import { LoadingSpinner } from '../components/LoadingSpinner';
-import { ErrorMessage } from '../components/ErrorMessage';
-import { useAuthStore } from '../stores/useAuthStore';
-import { apiClient } from '../lib/api';
-import { ClientUnpaidOrdersResponse, Offer } from '../types';
-import { Plus, CreditCard, Phone, X, Bot } from 'lucide-react';
+"use client"
+
+import { useEffect, useState } from "react"
+import { useParams, useNavigate, useLocation } from "react-router-dom"
+import { Header } from "../components/Header"
+import { BottomNavigation } from "../components/BottomNavigation"
+import { OffersCarousel } from "../components/OffersCarousel"
+import { ChatbotModal } from "../components/ChatbotModal"
+import { LoadingSpinner } from "../components/LoadingSpinner"
+import { ErrorMessage } from "../components/ErrorMessage"
+import { useAuthStore } from "../stores/useAuthStore"
+import { apiClient } from "../lib/api"
+import type { ClientUnpaidOrdersResponse, Offer } from "../types"
+import { Plus, CreditCard, Phone, X, Bot, UtensilsCrossed, Clock, CheckCircle2, Sparkles } from "lucide-react"
 
 export function DashboardPage() {
-  const { tableId } = useParams<{ tableId: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { isAuthenticated } = useAuthStore();
-  const [unpaidOrders, setUnpaidOrders] = useState<ClientUnpaidOrdersResponse | null>(null);
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showOrderSuccess, setShowOrderSuccess] = useState(false);
-  const [waiterCalled, setWaiterCalled] = useState(false);
-  const [showWaiterModal, setShowWaiterModal] = useState(false);
-  const [showCancelWaiterModal, setShowCancelWaiterModal] = useState(false);
-  const [showChatbot, setShowChatbot] = useState(false);
+  const { tableId } = useParams<{ tableId: string }>()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { isAuthenticated } = useAuthStore()
+  const [unpaidOrders, setUnpaidOrders] = useState<ClientUnpaidOrdersResponse | null>(null)
+  const [offers, setOffers] = useState<Offer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [showOrderSuccess, setShowOrderSuccess] = useState(false)
+  const [waiterCalled, setWaiterCalled] = useState(false)
+  const [showWaiterModal, setShowWaiterModal] = useState(false)
+  const [showCancelWaiterModal, setShowCancelWaiterModal] = useState(false)
+  const [showChatbot, setShowChatbot] = useState(false)
 
   // Poll for order updates every 3 seconds
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) return
 
     const interval = setInterval(() => {
-      loadUnpaidOrders();
-    }, 3000);
+      loadUnpaidOrders()
+    }, 3000)
 
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
+    return () => clearInterval(interval)
+  }, [isAuthenticated])
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate(`/loading/${tableId}`);
-      return;
+      navigate(`/loading/${tableId}`)
+      return
     }
 
     // Check if we just created an order
     if (location.state?.orderCreated) {
-      setShowOrderSuccess(true);
+      setShowOrderSuccess(true)
       // Clear the state to prevent showing again on refresh
-      window.history.replaceState({}, document.title);
+      window.history.replaceState({}, document.title)
       // Hide success message after 3 seconds
-      setTimeout(() => setShowOrderSuccess(false), 3000);
+      setTimeout(() => setShowOrderSuccess(false), 3000)
     }
 
-    loadData();
-  }, [isAuthenticated, tableId, navigate, location.state]);
+    loadData()
+  }, [isAuthenticated, tableId, navigate, location.state])
 
   const loadData = async () => {
-    if (!tableId) return;
+    if (!tableId) return
 
     try {
-      setLoading(true);
-      setError(null);
-      
+      setLoading(true)
+      setError(null)
+
       // Load client unpaid orders and offers
-      const [offersData] = await Promise.all([
-        apiClient.getOffers()
-      ]);
-      
-      setOffers(offersData);
-      await loadUnpaidOrders();
-      
+      const [offersData] = await Promise.all([apiClient.getOffers()])
+
+      setOffers(offersData)
+      await loadUnpaidOrders()
     } catch (error) {
-      console.error('Error loading data:', error);
-      setError('Error al cargar los datos de la mesa');
+      console.error("Error loading data:", error)
+      setError("Error al cargar los datos de la mesa")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const loadUnpaidOrders = async () => {
     try {
-      const unpaidOrdersData = await apiClient.getClientUnpaidOrders();
-      setUnpaidOrders(unpaidOrdersData);
+      const unpaidOrdersData = await apiClient.getClientUnpaidOrders()
+      setUnpaidOrders(unpaidOrdersData)
     } catch (error) {
-      console.error('Error loading unpaid orders:', error);
+      console.error("Error loading unpaid orders:", error)
     }
-  };
+  }
 
   const handleCallWaiter = async () => {
-    setShowWaiterModal(true);
-  };
+    setShowWaiterModal(true)
+  }
 
   const confirmCallWaiter = async () => {
-    if (!tableId) return;
-    
+    if (!tableId) return
+
     try {
-      const response = await apiClient.callWaiter(tableId);
+      const response = await apiClient.callWaiter(tableId)
       if (response.calling) {
-        setWaiterCalled(true);
-        setShowWaiterModal(false);
+        setWaiterCalled(true)
+        setShowWaiterModal(false)
       }
     } catch (error) {
-      console.error('Error calling waiter:', error);
-      alert('Error al llamar al mozo. Intenta nuevamente.');
-      setShowWaiterModal(false);
+      console.error("Error calling waiter:", error)
+      alert("Error al llamar al mozo. Intenta nuevamente.")
+      setShowWaiterModal(false)
     }
-  };
+  }
 
   const handleCancelWaiter = async () => {
-    if (!tableId) return;
-    
+    if (!tableId) return
+
     try {
-      await apiClient.cancelWaiterCall();
-      setWaiterCalled(false);
-      setShowCancelWaiterModal(false);
+      await apiClient.cancelWaiterCall()
+      setWaiterCalled(false)
+      setShowCancelWaiterModal(false)
     } catch (error) {
-      console.error('Error canceling waiter call:', error);
-      alert('Error al cancelar llamado. Intenta nuevamente.');
+      console.error("Error canceling waiter call:", error)
+      alert("Error al cancelar llamado. Intenta nuevamente.")
     }
-  };
-  
+  }
+
   const getStatusText = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      'RECEIVED': 'Recibida',
-      'ACEPTED': 'Aceptada',
-      'IN_PREPARATION': 'En preparación',
-      'DELIVERED': 'Entregada',
-      'CANCELED': 'Cancelada'
-    };
-    return statusMap[status] || status;
-  };
+      RECEIVED: "Recibida",
+      ACEPTED: "Aceptada",
+      IN_PREPARATION: "En preparación",
+      DELIVERED: "Entregada",
+      CANCELED: "Cancelada",
+    }
+    return statusMap[status] || status
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "RECEIVED":
+        return <Clock className="w-4 h-4 text-blue-500" />
+      case "ACEPTED":
+        return <CheckCircle2 className="w-4 h-4 text-green-500" />
+      case "IN_PREPARATION":
+        return <UtensilsCrossed className="w-4 h-4 text-orange-500" />
+      case "DELIVERED":
+        return <CheckCircle2 className="w-4 h-4 text-green-600" />
+      default:
+        return <Clock className="w-4 h-4 text-gray-500" />
+    }
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50 to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <Header title="Cargando..." />
         <LoadingSpinner message="Cargando información de la mesa..." />
+        <BottomNavigation tableId={tableId || ""} onCallWaiter={handleCallWaiter} />
       </div>
-    );
+    )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50 to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <Header title="Error" />
         <ErrorMessage
           message={error}
           action={
             <button
               onClick={loadData}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors"
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-4 rounded-2xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
             >
               Reintentar
             </button>
           }
         />
+        <BottomNavigation tableId={tableId || ""} onCallWaiter={handleCallWaiter} />
       </div>
-    );
+    )
   }
 
+  const hasOrders = unpaidOrders && unpaidOrders.orders.length > 0
+  const hasBalance = unpaidOrders && unpaidOrders.total_amount_owed > 0
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50 to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 pb-28">
       <Header
-        title={`Mesa ${unpaidOrders?.table_number || ''}`}
+        title="ComandaYa"
         tableNumber={unpaidOrders?.table_number}
         tableStatus="Ocupada"
         showCallWaiter
         onCallWaiter={handleCallWaiter}
       />
- 
-      <div className="p-4 space-y-6">
-        {/* Chatbot Button */}
+
+      <div className={`px-4 py-6 space-y-6 max-w-md mx-auto ${hasOrders || hasBalance ? "pb-32" : ""}`}>
+        {!hasOrders && !hasBalance && (
+          <div className="relative">
+            {/* Hero Background */}
+            <div className="relative bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 rounded-3xl p-8 mb-6 overflow-hidden shadow-2xl">
+              <div className="absolute inset-0 bg-[url('/food-hero-bg.jpg')] bg-cover bg-center opacity-10"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
+
+              <div className="relative z-10 text-center text-white">
+                <div className="text-6xl mb-4">🍽️</div>
+                <h1 className="text-2xl font-bold mb-2">¡Bienvenido!</h1>
+                <p className="text-orange-100 text-sm mb-6 max-w-xs mx-auto">
+                  Mesa {unpaidOrders?.table_number || "X"} • Explora nuestro delicioso menú y haz tu primer pedido
+                </p>
+
+                <button
+                  onClick={() => navigate(`/menu/${tableId}`)}
+                  className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20"
+                >
+                  Ver Menú
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-400 to-red-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <UtensilsCrossed className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-bold text-gray-900 dark:text-white text-center text-sm mb-1">Menú Completo</h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400 text-center">Platos deliciosos</p>
+              </div>
+
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-bold text-gray-900 dark:text-white text-center text-sm mb-1">Ofertas Especiales</h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400 text-center">Precios únicos</p>
+              </div>
+            </div>
+
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100/50 dark:border-gray-700/50">
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-center">Acciones Rápidas</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={() => navigate(`/menu/${tableId}`)}
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-3"
+                >
+                  <UtensilsCrossed className="w-5 h-5" />
+                  Explorar Menú
+                </button>
+
+                <button
+                  onClick={handleCallWaiter}
+                  className="w-full bg-white/50 dark:bg-gray-700/50 hover:bg-white/70 dark:hover:bg-gray-600/70 text-gray-900 dark:text-white py-3 rounded-2xl font-semibold transition-all duration-300 border border-gray-200/50 dark:border-gray-600/50 flex items-center justify-center gap-3"
+                >
+                  <Phone className="w-5 h-5" />
+                  Llamar Mozo
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Chatbot Button - repositioned */}
         <div className="flex justify-end">
           <button
             onClick={() => setShowChatbot(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full font-medium transition-colors flex items-center gap-2 shadow-lg"
+            className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
           >
-            <Bot className="w-4 h-4" />
-            Chatbot
+            <Bot className="w-5 h-5" />
+            Asistente
           </button>
         </div>
 
+        {/* Offers Carousel */}
+        <OffersCarousel offers={offers} />
 
         {/* Order Success Message */}
         {showOrderSuccess && (
-          <div className="bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200/50 dark:border-green-800/50 rounded-2xl p-6 shadow-lg backdrop-blur-sm">
             <div className="flex items-center">
-              <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
-                <span className="text-white text-sm">✓</span>
+              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                <CheckCircle2 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-green-800 dark:text-green-200 font-medium">
-                  ¡Orden creada exitosamente!
-                </h3>
+                <h3 className="text-green-800 dark:text-green-200 font-bold text-lg">¡Orden creada exitosamente!</h3>
                 <p className="text-green-600 dark:text-green-400 text-sm">
                   Tu pedido ha sido enviado a la cocina
                   {location.state?.orderNumber && ` - Orden #${location.state.orderNumber}`}
@@ -203,57 +288,62 @@ export function DashboardPage() {
 
         {/* Waiter Called Banner */}
         {waiterCalled && (
-          <div 
+          <div
             onClick={() => setShowCancelWaiterModal(true)}
-            className="bg-blue-100 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 cursor-pointer hover:bg-blue-150 dark:hover:bg-blue-900/30 transition-colors"
+            className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/50 dark:border-blue-800/50 rounded-2xl p-6 cursor-pointer hover:from-blue-100 dark:hover:from-blue-900/30 transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-3">
-                  <Phone className="w-3 h-3 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                  <Phone className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-blue-800 dark:text-blue-200 font-medium">
-                    Mozo en camino
-                  </h3>
-                  <p className="text-blue-600 dark:text-blue-400 text-sm">
-                    Toca para cancelar llamado
-                  </p>
+                  <h3 className="text-blue-800 dark:text-blue-200 font-bold text-lg">Mozo en camino</h3>
+                  <p className="text-blue-600 dark:text-blue-400 text-sm">Toca para cancelar llamado</p>
                 </div>
               </div>
               <div className="animate-pulse">
-                <Phone className="w-5 h-5 text-blue-500" />
+                <Phone className="w-6 h-6 text-blue-500" />
               </div>
             </div>
           </div>
         )}
 
-        {/* Offers Carousel */}
-        <OffersCarousel offers={offers} />
-
         {/* Órdenes en Proceso */}
-        {unpaidOrders && unpaidOrders.orders.length > 0 && (
+        {hasOrders && (
           <div className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Clock className="w-6 h-6 text-orange-500" />
+              Órdenes en Proceso
+            </h2>
             {unpaidOrders.orders.map((order) => (
-              <div key={order.uuid} className="bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-lg font-semibold text-orange-900 dark:text-orange-100">
-                    Orden en Proceso
-                  </h2>
-                  <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
-                    #{order.order_number}
-                  </span>
+              <div
+                key={order.uuid}
+                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-orange-200/50 dark:border-orange-800/50 rounded-2xl p-6 shadow-lg"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-bold text-orange-900 dark:text-orange-100">
+                    Orden #{order.order_number}
+                  </h3>
+                  <div className="flex items-center gap-2 bg-orange-100/80 dark:bg-orange-900/30 px-3 py-2 rounded-2xl backdrop-blur-sm">
+                    {getStatusIcon(order.status)}
+                    <span className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+                      {getStatusText(order.status)}
+                    </span>
+                  </div>
                 </div>
-                
-                <div className="space-y-2">
+
+                <div className="space-y-3">
                   {order.order_products.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                      <span className="text-orange-800 dark:text-orange-200">
-                        {item.quantity}x {item.product_details?.name || item.offer_details?.name || 'Producto'}
-                        
+                    <div
+                      key={index}
+                      className="flex justify-between items-center bg-orange-50/80 dark:bg-orange-900/20 rounded-2xl p-4 backdrop-blur-sm"
+                    >
+                      <span className="text-orange-800 dark:text-orange-200 font-medium">
+                        {item.quantity}x {item.product_details?.name || item.offer_details?.name || "Producto"}
                       </span>
-                      <span className="text-sm text-orange-600 dark:text-orange-400">
-                        {getStatusText(order.status)}
+                      <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+                        ${((item.product_details?.price || item.offer_details?.price || 0) * item.quantity).toFixed(2)}
                       </span>
                     </div>
                   ))}
@@ -264,32 +354,34 @@ export function DashboardPage() {
         )}
 
         {/* Resumen de Cuenta */}
-        {unpaidOrders && unpaidOrders.total_amount_owed > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        {hasBalance && (
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100/50 dark:border-gray-700/50">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+              <CreditCard className="w-6 h-6 text-green-500" />
               Resumen de Cuenta
             </h2>
-            
-            <div className="space-y-3">
-              {unpaidOrders.orders.flatMap(order => 
+
+            <div className="space-y-4">
+              {unpaidOrders.orders.flatMap((order) =>
                 order.order_products.map((item, index) => (
-                  <div key={`${order.uuid}-${index}`} className="flex justify-between items-center">
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {item.quantity}x {item.product_details?.name || item.offer_details?.name || 'Producto'}
+                  <div
+                    key={`${order.uuid}-${index}`}
+                    className="flex justify-between items-center py-3 border-b border-gray-100/50 dark:border-gray-700/50 last:border-b-0"
+                  >
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                      {item.quantity}x {item.product_details?.name || item.offer_details?.name || "Producto"}
                     </span>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-bold text-gray-900 dark:text-white">
                       ${((item.product_details?.price || item.offer_details?.price || 0) * item.quantity).toFixed(2)}
                     </span>
                   </div>
-                ))
+                )),
               )}
-              
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-6 mt-6 backdrop-blur-sm border border-green-200/50 dark:border-green-800/50">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Total
-                  </span>
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">Total a Pagar</span>
+                  <span className="text-2xl font-bold text-green-600 dark:text-green-400">
                     ${unpaidOrders.total_amount_owed.toFixed(2)}
                   </span>
                 </div>
@@ -297,77 +389,88 @@ export function DashboardPage() {
             </div>
           </div>
         )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-4">
-          <button
-            onClick={() => navigate(`/menu/${tableId}`)}
-            className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Ordenar
-          </button>
-          
-          {unpaidOrders && unpaidOrders.total_amount_owed > 0 && (
-            <button
-              onClick={() => {
-                // Check if there's more than one person at the table
-                apiClient.getOpenSessions().then(response => {
-                  if (response.open_sessions > 1) {
-                    // Show payment selection if more than one person
-                    navigate(`/payment-split/${tableId}`, { 
-                      state: { unpaidOrders } 
-                    });
-                  } else {
-                    // Go directly to payment if only one person
-                    navigate(`/payment/${tableId}`, {
-                      state: {
-                        paymentType: 'individual',
-                        unpaidOrders
-                      }
-                    });
-                  }
-                }).catch(error => {
-                  console.error('Error checking open sessions:', error);
-                  // Fallback to payment selection
-                  navigate(`/payment-split/${tableId}`, { 
-                    state: { unpaidOrders } 
-                  });
-                });
-              }}
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-            >
-              <CreditCard className="w-5 h-5" />
-              Pagar Mesa
-            </button>
-          )}
-        </div>
       </div>
+
+      {(hasOrders || hasBalance) && (
+        <div className="fixed bottom-20 left-4 right-4 z-40 max-w-md mx-auto">
+          <div className="absolute inset-x-0 -bottom-2 h-8 bg-gradient-to-t from-white/95 to-transparent dark:from-gray-900/95 pointer-events-none"></div>
+
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-3xl p-4 shadow-xl border border-gray-200/30 dark:border-gray-700/30 relative">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/50 to-transparent"></div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate(`/menu/${tableId}`)}
+                className="flex-1 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-gray-700/90 border border-gray-200/40 dark:border-gray-600/40 hover:border-orange-300/60 dark:hover:border-orange-500/60 text-gray-900 dark:text-white py-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:scale-[1.02]"
+              >
+                <Plus className="w-5 h-5" />
+                Ordenar Más
+              </button>
+
+              {hasBalance && (
+                <button
+                  onClick={() => {
+                    // Check if there's more than one person at the table
+                    apiClient
+                      .getOpenSessions()
+                      .then((response) => {
+                        if (response.open_sessions > 1) {
+                          // Show payment selection if more than one person
+                          navigate(`/payment-split/${tableId}`, {
+                            state: { unpaidOrders },
+                          })
+                        } else {
+                          // Go directly to payment if only one person
+                          navigate(`/payment/${tableId}`, {
+                            state: {
+                              paymentType: "individual",
+                              unpaidOrders,
+                            },
+                          })
+                        }
+                      })
+                      .catch((error) => {
+                        console.error("Error checking open sessions:", error)
+                        // Fallback to payment selection
+                        navigate(`/payment-split/${tableId}`, {
+                          state: { unpaidOrders },
+                        })
+                      })
+                  }}
+                  className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:scale-[1.02]"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  Pagar ${unpaidOrders.total_amount_owed.toFixed(2)}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Navigation */}
+      <BottomNavigation tableId={tableId || ""} onCallWaiter={handleCallWaiter} />
 
       {/* Waiter Call Confirmation Modal */}
       {showWaiterModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-gray-100/50 dark:border-gray-700/50">
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <Phone className="w-10 h-10 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                ¿Llamar al mozo?
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                El mozo será notificado y se dirigirá a tu mesa
-              </p>
-              <div className="flex gap-3">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">¿Llamar al mozo?</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-8">El mozo será notificado y se dirigirá a tu mesa</p>
+              <div className="flex gap-4">
                 <button
                   onClick={() => setShowWaiterModal(false)}
-                  className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white py-2 rounded-lg font-medium transition-colors"
+                  className="flex-1 bg-gray-100/80 dark:bg-gray-700/80 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white py-4 rounded-2xl font-semibold transition-all duration-300 backdrop-blur-sm"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={confirmCallWaiter}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition-colors"
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg"
                 >
                   Llamar
                 </button>
@@ -379,28 +482,24 @@ export function DashboardPage() {
 
       {/* Cancel Waiter Call Modal */}
       {showCancelWaiterModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-gray-100/50 dark:border-gray-700/50">
             <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <X className="w-8 h-8 text-red-600 dark:text-red-400" />
+              <div className="w-20 h-20 bg-gradient-to-r from-red-100 to-pink-100 dark:from-red-900/20 dark:to-pink-900/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <X className="w-10 h-10 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                ¿Cancelar llamado?
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Se cancelará la notificación al mozo
-              </p>
-              <div className="flex gap-3">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">¿Cancelar llamado?</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-8">Se cancelará la notificación al mozo</p>
+              <div className="flex gap-4">
                 <button
                   onClick={() => setShowCancelWaiterModal(false)}
-                  className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white py-2 rounded-lg font-medium transition-colors"
+                  className="flex-1 bg-gray-100/80 dark:bg-gray-700/80 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white py-4 rounded-2xl font-semibold transition-all duration-300 backdrop-blur-sm"
                 >
                   Mantener
                 </button>
                 <button
                   onClick={handleCancelWaiter}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-medium transition-colors"
+                  className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg"
                 >
                   Cancelar Llamado
                 </button>
@@ -409,11 +508,9 @@ export function DashboardPage() {
           </div>
         </div>
       )}
+
       {/* Chatbot Modal */}
-      <ChatbotModal
-        isOpen={showChatbot}
-        onClose={() => setShowChatbot(false)}
-      />
+      <ChatbotModal isOpen={showChatbot} onClose={() => setShowChatbot(false)} />
     </div>
-  );
+  )
 }
