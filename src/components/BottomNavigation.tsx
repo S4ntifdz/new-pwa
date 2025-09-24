@@ -51,8 +51,12 @@ export function BottomNavigation({ tableId, onCallWaiter }: BottomNavigationProp
   ]
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50">
-      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50 shadow-2xl">
+    <div className="fixed bottom-0 left-0 right-0 z-[100]">
+      <div className="absolute inset-x-0 -top-4 h-6 bg-gradient-to-b from-transparent to-white/95 dark:to-gray-900/95 pointer-events-none"></div>
+
+      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border-t border-gray-200/30 dark:border-gray-800/30 shadow-2xl relative">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/40 to-transparent"></div>
+
         <div className="flex items-center justify-around max-w-md mx-auto px-4 py-3">
           {navItems.map((item) => {
             const Icon = item.icon
@@ -70,7 +74,7 @@ export function BottomNavigation({ tableId, onCallWaiter }: BottomNavigationProp
                 }}
                 className={`flex flex-col items-center gap-1 py-3 px-4 rounded-2xl transition-all duration-300 relative group min-w-[60px] ${
                   isActiveItem
-                    ? "text-orange-500 bg-orange-50 dark:bg-orange-900/30 scale-105 shadow-lg"
+                    ? "text-orange-500 bg-orange-50/80 dark:bg-orange-900/30 scale-105 shadow-md"
                     : "text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-50/50 dark:hover:bg-orange-900/20 hover:scale-105"
                 }`}
               >
