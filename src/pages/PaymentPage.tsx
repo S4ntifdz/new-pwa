@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { QRModal } from '../components/QRModal';
 import { RatingModal } from '../components/RatingModal';
-import { CreditCard, Building2, DollarSign, QrCode, Smartphone, Heart, ChevronDown, ChevronUp } from 'lucide-react';
+import { CreditCard, DollarSign, QrCode, Smartphone, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import { apiClient } from '../lib/api';
 
 interface PaymentMethod {
@@ -24,13 +24,16 @@ export function PaymentPage() {
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [showTipSection, setShowTipSection] = useState(false);
   const [selectedWaiter, setSelectedWaiter] = useState('');
-  const [tipPercentage, setTipPercentage] = useState(0);
-  const [customTipAmount, setCustomTipAmount] = useState('');
+  const [tipPercentage, setTipPercentage] = useState<any>(0);
+  const [customTipAmount, setCustomTipAmount] = useState<any>('');
+  const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
+  const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
+  const [mpLoading, setMpLoading] = useState(false);
+  const mpBrickRef = useRef<HTMLDivElement>(null);
   
   const { paymentType, unpaidOrders } = location.state || {};
   const [ordersToShow, setOrdersToShow] = useState(unpaidOrders);
 
-  // Mock data for waiters - in real app this would come from API
   const waiters = [
     { id: '1', name: 'Carlos', percentage: 10 },
     { id: '2', name: 'María', percentage: 15 },
@@ -66,15 +69,12 @@ export function PaymentPage() {
     }
   ];
 
-  // Load orders based on payment type
   React.useEffect(() => {
     const loadOrders = async () => {
       if (paymentType === 'individual') {
-        // Use client unpaid orders (already loaded)
         const clientOrders = await apiClient.getClientUnpaidOrders();
         setOrdersToShow(clientOrders);
       } else if (paymentType === 'table' && tableId) {
-        // Use table unpaid orders
         const tableOrders = await apiClient.getUnpaidOrders(tableId);
         setOrdersToShow(tableOrders);
       }
@@ -84,60 +84,94 @@ export function PaymentPage() {
       loadOrders();
     }
   }, [paymentType, tableId]);
+
 const handlePayment = async () => {
   if (!tableId || !ordersToShow) return;
-
   setProcessing(true);
-
   try {
     const paymentData = {
       method: selectedPaymentMethod,
       amount: ordersToShow.total_amount_owed.toString()
     };
-
     let response;
     if (paymentType === 'table') {
-      // Nuevo endpoint para pagar toda la mesa
       response = await apiClient.request('/payments/all-table/', {
         method: 'POST',
         body: JSON.stringify(paymentData),
       });
     } else {
-      // Pago individual
       response = await apiClient.createPayment(paymentData);
     }
-
     console.log('Payment created:', response);
 
-    setPaymentCompleted(true);
-
-    if (selectedPaymentMethod === 'qr') {
-      setShowQRModal(true);
-    } else {
-      setTimeout(() => {
-        setShowRatingModal(true);
-      }, 3000);
+      if (selectedPaymentMethod === 'mercadopago') {
+        setMpPreferenceId(response.preference_id);
+        setMpPublicKey(response.public_key);
+        setMpLoading(true);
+      } else if (selectedPaymentMethod === 'qr') {
+        setPaymentCompleted(true);
+        setShowQRModal(true);
+      } else {
+        setPaymentCompleted(true);
+    setTimeout(() => {
+      setShowRatingModal(true);
+    }, 3000);
+      }
+    } catch (error) {
+      console.error('Error creating payment:', error);
+      alert('Error al procesar el pago. Intenta nuevamente.');
+    } finally {
+      setProcessing(false);
     }
-  } catch (error) {
-    console.error('Error creating payment:', error);
-    alert('Error al procesar el pago. Intenta nuevamente.');
-  } finally {
-    setProcessing(false);
-  }
-};
+  };
+
+  React.useEffect(() => {
+    if (mpPublicKey && mpPreferenceId && mpLoading && mpBrickRef.current) {
+      if (!document.getElementById("mp-sdk-script")) {
+        const script = document.createElement('script');
+        script.src = "https://sdk.mercadopago.com/js/v2";
+        script.async = true;
+        script.id = "mp-sdk-script";
+        script.onload = () => {
+          // @ts-ignore
+          const mp = new window.MercadoPago(mpPublicKey);
+          // @ts-ignore
+          const bricksBuilder = mp.bricks();
+          // @ts-ignore
+          bricksBuilder.create("wallet", "walletBrick_container", {
+            initialization: {
+              preferenceId: mpPreferenceId
+            }
+          });
+  };
+        document.body.appendChild(script);
+      } else {
+        // @ts-ignore
+        const mp = new window.MercadoPago(mpPublicKey);
+        // @ts-ignore
+        const bricksBuilder = mp.bricks();
+        // @ts-ignore
+        bricksBuilder.create("wallet", "walletBrick_container", {
+          initialization: {
+            preferenceId: mpPreferenceId
+          }
+        });
+      }
+    }
+    return () => {
+      const container = document.getElementById("walletBrick_container");
+      if (container) container.innerHTML = '';
+  };
+  }, [mpPublicKey, mpPreferenceId, mpLoading]);
 
   const handleQRModalClose = () => {
     setShowQRModal(false);
-    // Show rating modal after 3 seconds when QR modal closes
     setTimeout(() => {
       setShowRatingModal(true);
     }, 3000);
   };
 
   const handleRatingSubmit = (rating: number, comment?: string) => {
-    console.log('Rating submitted:', { rating, comment });
-    
-    // Navigate to confirmation
     navigate(`/confirmation/${tableId}`, {
       state: {
         orderNumber: 'PAID-' + Date.now(),
@@ -150,7 +184,6 @@ const handlePayment = async () => {
   };
 
   const handleRatingClose = () => {
-    // Navigate to confirmation without rating
     navigate(`/confirmation/${tableId}`, {
       state: {
         orderNumber: 'PAID-' + Date.now(),
@@ -162,16 +195,13 @@ const handlePayment = async () => {
 
   const calculateTipAmount = () => {
     if (!ordersToShow) return 0;
-    
     if (selectedWaiter === 'custom') {
       return parseFloat(customTipAmount) || 0;
     }
-    
     const waiter = waiters.find(w => w.id === selectedWaiter);
     if (waiter) {
-      return (ordersToShow.total_amount_owed * waiter.percentage) / 100;
+      return ((ordersToShow.total_amount_owed || 0) * (tipPercentage || waiter.percentage)) / 100;
     }
-    
     return 0;
   };
 
@@ -189,9 +219,9 @@ const handlePayment = async () => {
             <p className="text-gray-600 dark:text-gray-400">Cargando información de pago...</p>
           </div>
         </div>
-      </div>
-    );
-  }
+        </div>
+  );
+}
 
   return (
     <>
@@ -199,7 +229,6 @@ const handlePayment = async () => {
       <Header title="Pago" showBack />
 
       <div className="p-4 space-y-6">
-        {/* Payment Type Info */}
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
           <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
             Tipo de pago:
@@ -209,7 +238,6 @@ const handlePayment = async () => {
           </p>
         </div>
 
-        {/* Payment Info */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
             {paymentType === 'individual' ? 'Pago Individual' : 'Pago de Mesa'}
@@ -223,8 +251,7 @@ const handlePayment = async () => {
               Total a pagar: ${ordersToShow.total_amount_owed.toFixed(2)}
             </p>
           </div>
-          
-          {/* Order Details */}
+
           <div className="space-y-3 mt-4">
             <h4 className="font-medium text-gray-900 dark:text-white">Detalle de órdenes:</h4>
             {ordersToShow.orders.flatMap(order => 
@@ -241,130 +268,125 @@ const handlePayment = async () => {
             )}
           </div>
         </div>
-{/* Tip Section */}
-<div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-  <button
-    onClick={() => setShowTipSection(!showTipSection)}
-    className="w-full flex items-center justify-between"
-  >
-    <div className="flex items-center gap-3">
-      <Heart className="w-5 h-5 text-red-500" />
-      <span className="font-semibold text-gray-900 dark:text-white">
-        Dejar Propina
-      </span>
-    </div>
-    {showTipSection ? (
-      <ChevronUp className="w-5 h-5 text-gray-500" />
-    ) : (
-      <ChevronDown className="w-5 h-5 text-gray-500" />
-    )}
-  </button>
-
-  {showTipSection && (
-    <div className="mt-4 space-y-3">
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        Selecciona un mozo para dejar propina:
-      </p>
-
-      {/* Lista de mozos con scroll */}
-      <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-        {waiters.map((waiter) => (
-          <div key={waiter.id}>
-            <label
-              className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                selectedWaiter === waiter.id
-                  ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <input
-                  type="radio"
-                  name="waiter"
-                  value={waiter.id}
-                  checked={selectedWaiter === waiter.id}
-                  onChange={(e) => setSelectedWaiter(e.target.value)}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                    selectedWaiter === waiter.id
-                      ? 'border-red-500 bg-red-500'
-                      : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                >
-                  {selectedWaiter === waiter.id && (
-                    <div className="w-2 h-2 bg-white rounded-full" />
-                  )}
-                </div>
-                <span className="text-gray-900 dark:text-white font-medium">
-                  {waiter.name}
-                </span>
-              </div>
-            </label>
-
-            {/* Si se selecciona este mozo, mostrar opciones */}
-            {selectedWaiter === waiter.id && (
-              <div className="mt-2 ml-7 space-x-2 flex items-center flex-wrap">
-                {[5, 10, 20].map((pct) => (
-                  <button
-                    key={pct}
-                    onClick={() => {
-                      setCustomTipAmount(null);
-                      setTipPercentage(pct);
-                    }}
-                    className={`px-3 py-1 rounded-full text-sm font-medium border ${
-                      tipPercentage === pct
-                        ? 'bg-red-500 text-white border-red-500'
-                        : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    {pct}%
-                  </button>
-                ))}
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600 dark:text-gray-400">$</span>
-                  <input
-                    type="number"
-                    value={customTipAmount || ''}
-                    onChange={(e) => {
-                      setTipPercentage(null);
-                      setCustomTipAmount(e.target.value);
-                    }}
-                    placeholder="Otro"
-                    className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                    step="0.01"
-                    min="0"
-                  />
-                </div>
-              </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setShowTipSection(!showTipSection)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <Heart className="w-5 h-5 text-red-500" />
+              <span className="font-semibold text-gray-900 dark:text-white">
+                Dejar Propina
+              </span>
+            </div>
+            {showTipSection ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
             )}
-          </div>
-        ))}
-      </div>
+          </button>
 
-      {(selectedWaiter && (tipPercentage || customTipAmount)) && (
-        <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-          <div className="flex justify-between items-center">
-            <span className="text-green-800 dark:text-green-200 font-medium">
-              Propina seleccionada:
-            </span>
-            <span className="text-green-900 dark:text-green-100 font-bold">
-              ${calculateTipAmount().toFixed(2)}
-            </span>
-          </div>
+          {showTipSection && (
+            <div className="mt-4 space-y-3">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Selecciona un mozo para dejar propina:
+              </p>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {waiters.map((waiter) => (
+                  <div key={waiter.id}>
+                    <label
+                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedWaiter === waiter.id
+                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="waiter"
+                          value={waiter.id}
+                          checked={selectedWaiter === waiter.id}
+                          onChange={(e) => { setSelectedWaiter(e.target.value); setTipPercentage(0); setCustomTipAmount(''); }}
+                          className="sr-only"
+                        />
+                        <div
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            selectedWaiter === waiter.id
+                              ? 'border-red-500 bg-red-500'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        >
+                          {selectedWaiter === waiter.id && (
+                            <div className="w-2 h-2 bg-white rounded-full" />
+                          )}
+                        </div>
+                        <span className="text-gray-900 dark:text-white font-medium">
+                          {waiter.name}
+                        </span>
+                      </div>
+                    </label>
+
+                    {selectedWaiter === waiter.id && (
+                      <div className="mt-2 ml-7 space-x-2 flex items-center flex-wrap">
+                        {[5, 10, 20].map((pct) => (
+                          <button
+                            key={pct}
+                            onClick={() => {
+                              setCustomTipAmount('');
+                              setTipPercentage(pct);
+                            }}
+                            className={`px-3 py-1 rounded-full text-sm font-medium border ${
+                              tipPercentage === pct
+                                ? 'bg-red-500 text-white border-red-500'
+                                : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        ))}
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600 dark:text-gray-400">$</span>
+                          <input
+                            type="number"
+                            value={customTipAmount || ''}
+                            onChange={(e) => {
+                              setTipPercentage(0);
+                              setCustomTipAmount(e.target.value);
+                            }}
+                            placeholder="Otro"
+                            className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {(selectedWaiter && (tipPercentage || customTipAmount)) && (
+                <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-green-800 dark:text-green-200 font-medium">
+                      Propina seleccionada:
+                    </span>
+                    <span className="text-green-900 dark:text-green-100 font-bold">
+                      ${calculateTipAmount().toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  )}
-</div>
 
-        {/* Payment Methods */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
             Método de Pago
           </h3>
-          
           <div className="space-y-3">
             {paymentMethods.map((method) => (
               <label
@@ -383,7 +405,6 @@ const handlePayment = async () => {
                   onChange={(e) => setSelectedPaymentMethod(e.target.value)}
                   className="sr-only"
                 />
-                
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                   selectedPaymentMethod === method.id
                     ? 'border-orange-500 bg-orange-500'
@@ -393,7 +414,6 @@ const handlePayment = async () => {
                     <div className="w-2 h-2 bg-white rounded-full" />
                   )}
                 </div>
-                
                 <div className="flex items-center gap-3 flex-1">
                   <div className="text-gray-700 dark:text-gray-300">
                     {method.icon}
@@ -402,7 +422,6 @@ const handlePayment = async () => {
                     {method.name}
                   </span>
                 </div>
-                
                 {method.type === 'credit_card' && (
                   <div className="flex gap-2">
                     <div className="w-8 h-5 bg-red-500 rounded text-white text-xs flex items-center justify-center font-bold">
@@ -413,13 +432,11 @@ const handlePayment = async () => {
                     </div>
                   </div>
                 )}
-                
                 {method.type === 'qr' && (
                   <div className="w-8 h-5 bg-gray-800 rounded text-white text-xs flex items-center justify-center">
                     QR
                   </div>
                 )}
-                
                 {method.type === 'mercadopago' && (
                   <div className="w-8 h-5 bg-blue-500 rounded text-white text-xs flex items-center justify-center font-bold">
                     MP
@@ -431,7 +448,6 @@ const handlePayment = async () => {
         </div>
       </div>
 
-      {/* Fixed Bottom Button */}
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
         {selectedWaiter && (
           <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -451,6 +467,26 @@ const handlePayment = async () => {
             </div>
           </div>
         )}
+        {selectedPaymentMethod === 'mercadopago' && mpPreferenceId && mpPublicKey ? (
+          <div>
+            <div ref={mpBrickRef} id="walletBrick_container" className="mb-4" />
+            <button
+              className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-medium mb-2" disabled
+            >
+              Finaliza el pago en MercadoPago
+            </button>
+            <button
+              onClick={() => {
+                setMpPreferenceId(null);
+                setMpPublicKey(null);
+                setMpLoading(false);
+              }}
+              className="w-full bg-red-100 text-red-600 py-2 rounded-lg mt-1"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
         <button
           onClick={handlePayment}
           disabled={processing || paymentCompleted}
@@ -465,17 +501,16 @@ const handlePayment = async () => {
             `Pagar $${getTotalWithTip().toFixed(2)}`
           )}
         </button>
+        )}
       </div>
       </div>
 
-      {/* QR Payment Modal */}
       <QRModal
         isOpen={showQRModal}
         onClose={handleQRModalClose}
         amount={ordersToShow?.total_amount_owed || 0}
       />
 
-      {/* Rating Modal */}
       <RatingModal
         isOpen={showRatingModal}
         onClose={handleRatingClose}
