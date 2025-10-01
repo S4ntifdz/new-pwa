@@ -167,6 +167,10 @@ async validateSession(token?: string) {
   async getOffers() {
     return this.request('/offers/');
   }
+  
+  async getConfig() {
+    return this.request('/config/');
+  }
 }
 
 export const apiClient = new ApiClient();

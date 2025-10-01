@@ -27,6 +27,7 @@ export function DashboardPage() {
   const [showWaiterModal, setShowWaiterModal] = useState(false)
   const [showCancelWaiterModal, setShowCancelWaiterModal] = useState(false)
   const [showChatbot, setShowChatbot] = useState(false)
+  const [config, setConfig] = useState<any>(null);
 
   // Poll for order updates every 3 seconds
   useEffect(() => {
@@ -57,6 +58,7 @@ export function DashboardPage() {
     loadData()
   }, [isAuthenticated, tableId, navigate, location.state])
 
+
   const loadData = async () => {
     if (!tableId) return
 
@@ -64,9 +66,13 @@ export function DashboardPage() {
       setLoading(true)
       setError(null)
 
-      // Load client unpaid orders and offers
-      const [offersData] = await Promise.all([apiClient.getOffers()])
+      // Cargar configuración y ofertas
+      const [configData, offersData] = await Promise.all([
+        apiClient.getConfig(),
+        apiClient.getOffers()
+      ])
 
+      setConfig(configData.config)
       setOffers(offersData)
       await loadUnpaidOrders()
     } catch (error) {
@@ -89,6 +95,7 @@ export function DashboardPage() {
   const handleCallWaiter = async () => {
     setShowWaiterModal(true)
   }
+
 
   const confirmCallWaiter = async () => {
     if (!tableId) return
@@ -187,8 +194,7 @@ export function DashboardPage() {
         showCallWaiter
         onCallWaiter={handleCallWaiter}
       />
-
-      <div className={`px-4 py-6 space-y-6 max-w-md mx-auto ${hasOrders || hasBalance ? "pb-32" : ""}`}>
+   <div className={`px-4 py-6 space-y-6 max-w-md mx-auto ${hasOrders || hasBalance ? "pb-32" : ""}`}>
         {!hasOrders && !hasBalance && (
           <div className="relative">
             {/* Hero Background */}
@@ -198,75 +204,32 @@ export function DashboardPage() {
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
 
               <div className="relative z-10 text-center text-white">
-                <div className="text-6xl mb-4">🍽️</div>
-                <h1 className="text-2xl font-bold mb-2">¡Bienvenido!</h1>
+                {config?.logotype ? (
+                  <img
+                    src={config.logotype}
+                    alt={config.tenant_name}
+                    className="mx-auto mb-4 h-16 object-contain"
+                    style={{ maxHeight: 64 }}
+                  />
+                ) : (
+                  <div className="text-6xl mb-4">🍽️</div>
+                )}
+                <h1 className="text-2xl font-bold mb-2">{config?.tenant_name || "¡Bienvenido!"}</h1>
                 <p className="text-orange-100 text-sm mb-6 max-w-xs mx-auto">
-                  Mesa {unpaidOrders?.table_number || "X"} • Explora nuestro delicioso menú y haz tu primer pedido
+                  {config?.business_description ||
+                    `Mesa ${unpaidOrders?.table_number || "X"} • Explora nuestro delicioso menú y haz tu primer pedido`}
                 </p>
-
-                <button
-                  onClick={() => navigate(`/menu/${tableId}`)}
-                  className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 border border-white/20"
-                >
-                  Ver Menú
-                </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-300 hover:scale-105">
-                <div className="w-12 h-12 bg-gradient-to-r from-orange-400 to-red-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <UtensilsCrossed className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white text-center text-sm mb-1">Menú Completo</h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400 text-center">Platos deliciosos</p>
-              </div>
+            {/* Ofertas Carousel en lugar de los cuadrados */}
+            <OffersCarousel offers={offers} />
 
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100/50 dark:border-gray-700/50 hover:shadow-xl transition-all duration-300 hover:scale-105">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Sparkles className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white text-center text-sm mb-1">Ofertas Especiales</h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400 text-center">Precios únicos</p>
-              </div>
-            </div>
-
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100/50 dark:border-gray-700/50">
-              <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-center">Acciones Rápidas</h3>
-              <div className="space-y-3">
-                <button
-                  onClick={() => navigate(`/menu/${tableId}`)}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-3"
-                >
-                  <UtensilsCrossed className="w-5 h-5" />
-                  Explorar Menú
-                </button>
-
-                <button
-                  onClick={handleCallWaiter}
-                  className="w-full bg-white/50 dark:bg-gray-700/50 hover:bg-white/70 dark:hover:bg-gray-600/70 text-gray-900 dark:text-white py-3 rounded-2xl font-semibold transition-all duration-300 border border-gray-200/50 dark:border-gray-600/50 flex items-center justify-center gap-3"
-                >
-                  <Phone className="w-5 h-5" />
-                  Llamar Mozo
-                </button>
-              </div>
-            </div>
+            {/* Eliminar los cuadrados de Menú Completo y Ofertas Especiales */}
           </div>
         )}
 
         {/* Chatbot Button - repositioned */}
-        <div className="flex justify-end">
-          <button
-            onClick={() => setShowChatbot(true)}
-            className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-6 py-3 rounded-2xl font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105"
-          >
-            <Bot className="w-5 h-5" />
-            Asistente
-          </button>
-        </div>
-
-        {/* Offers Carousel */}
-        <OffersCarousel offers={offers} />
 
         {/* Order Success Message */}
         {showOrderSuccess && (
