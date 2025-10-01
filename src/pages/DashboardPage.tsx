@@ -385,7 +385,7 @@ export function DashboardPage() {
                 className="flex-1 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-gray-700/90 border border-gray-200/40 dark:border-gray-600/40 hover:border-orange-300/60 dark:hover:border-orange-500/60 text-gray-900 dark:text-white py-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:scale-[1.02]"
               >
                 <Plus className="w-5 h-5" />
-                Ordenar Más
+                Ordenar
               </button>
 
               {hasBalance && (
