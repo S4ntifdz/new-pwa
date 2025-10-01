@@ -89,9 +89,16 @@ const handlePayment = async () => {
   if (!tableId || !ordersToShow) return;
   setProcessing(true);
   try {
+    let channel = '';
+    if (selectedPaymentMethod === 'cash') channel = 'cash';
+    else if (selectedPaymentMethod === 'mercadopago') channel = 'MercadoPago';
+    // Puedes agregar más métodos si es necesario
+
     const paymentData = {
       method: selectedPaymentMethod,
-      amount: ordersToShow.total_amount_owed.toString()
+      amount: ordersToShow.total_amount_owed.toString(),
+      channel,
+      table_uuid: tableId
     };
     let response;
     if (paymentType === 'table') {

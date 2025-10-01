@@ -24,7 +24,8 @@ export function OffersCarousel({ offers }: OffersCarouselProps) {
   if (offers.length === 0) return null
 
   return (
-    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-gray-100/50 dark:border-gray-700/50 mb-6">
+    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-3xl
+     p-6 shadow-xl border border-gray-100/50 dark:border-gray-700/50 mb-12">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-2xl flex items-center justify-center shadow-lg">
           <Sparkles className="w-5 h-5 text-white" />

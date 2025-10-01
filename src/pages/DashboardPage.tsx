@@ -354,6 +354,24 @@ export function DashboardPage() {
         )}
       </div>
 
+
+       <div className="fixed bottom-20 left-4 right-4 z-40 max-w-md mx-auto">
+          <div className="absolute inset-x-0 -bottom-2 h-8 bg-gradient-to-t from-white/95 to-transparent dark:from-gray-900/95 pointer-events-none"></div>
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-3xl p-4 shadow-xl border border-gray-200/30 dark:border-gray-700/30 relative">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-orange-300/50 to-transparent"></div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate(`/menu/${tableId}`)}
+                className="flex-1 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm hover:bg-white/90 dark:hover:bg-gray-700/90 border border-gray-200/40 dark:border-gray-600/40 hover:border-orange-300/60 dark:hover:border-orange-500/60 text-gray-900 dark:text-white py-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:scale-[1.02]"
+              >
+                <Plus className="w-5 h-5" />
+                Ordenar
+              </button>
+            </div>
+          </div>
+        </div>
+
+
       {(hasOrders || hasBalance) && (
         <div className="fixed bottom-20 left-4 right-4 z-40 max-w-md mx-auto">
           <div className="absolute inset-x-0 -bottom-2 h-8 bg-gradient-to-t from-white/95 to-transparent dark:from-gray-900/95 pointer-events-none"></div>
@@ -472,8 +490,6 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Chatbot Modal */}
-      <ChatbotModal isOpen={showChatbot} onClose={() => setShowChatbot(false)} />
     </div>
   )
 }
