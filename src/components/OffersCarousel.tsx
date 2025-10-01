@@ -45,7 +45,7 @@ export function OffersCarousel({ offers }: OffersCarouselProps) {
           {offers.map((offer) => (
             <div
               key={offer.uuid}
-              className="w-full flex-shrink-0 bg-gradient-to-br from-orange-400 via-red-500 to-pink-500 p-8 text-white relative overflow-hidden"
+              className="w-full flex-shrink-0 bg-gradient-to-br from-[#497385] via-[#769BAE] to-[#497385]  p-8 text-white relative overflow-hidden"
             >
               {/* Background decoration */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>

@@ -199,7 +199,7 @@ export function DashboardPage() {
         {!hasOrders && !hasBalance && (
           <div className="relative">
             {/* Hero Background */}
-            <div className="relative bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 rounded-3xl p-8 mb-6 overflow-hidden shadow-2xl">
+            <div className="relative bg-gradient-to-br from-[#497385] via-[#769BAE] to-[#497385] rounded-3xl p-8 mb-6 overflow-hidden shadow-2xl">
               <div className="absolute inset-0 bg-[url('/food-hero-bg.jpg')] bg-cover bg-center opacity-10"></div>
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
