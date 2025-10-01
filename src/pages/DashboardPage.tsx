@@ -12,6 +12,7 @@ import { useAuthStore } from "../stores/useAuthStore"
 import { apiClient } from "../lib/api"
 import type { ClientUnpaidOrdersResponse, Offer } from "../types"
 import { Plus, CreditCard, Phone, X, Bot, UtensilsCrossed, Clock, CheckCircle2, Sparkles } from "lucide-react"
+import defaultLogo from '../media/Comandaya_bk.png';
 
 export function DashboardPage() {
   const { tableId } = useParams<{ tableId: string }>()
@@ -35,7 +36,7 @@ export function DashboardPage() {
 
     const interval = setInterval(() => {
       loadUnpaidOrders()
-    }, 3000)
+    }, 10000)
 
     return () => clearInterval(interval)
   }, [isAuthenticated])
@@ -203,23 +204,21 @@ export function DashboardPage() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
 
-              <div className="relative z-10 text-center text-white">
-                {config?.logotype ? (
-                  <img
-                    src={config.logotype}
-                    alt={config.tenant_name}
-                    className="mx-auto mb-4 h-16 object-contain"
-                    style={{ maxHeight: 64 }}
-                  />
-                ) : (
-                  <div className="text-6xl mb-4">🍽️</div>
-                )}
-                <h1 className="text-2xl font-bold mb-2">{config?.tenant_name || "¡Bienvenido!"}</h1>
-                <p className="text-orange-100 text-sm mb-6 max-w-xs mx-auto">
-                  {config?.business_description ||
-                    `Mesa ${unpaidOrders?.table_number || "X"} • Explora nuestro delicioso menú y haz tu primer pedido`}
-                </p>
-              </div>
+
+            <div className="relative z-10 text-center text-white">
+              <img
+                src={config?.logotype || defaultLogo}
+                alt={config?.tenant_name || "Logotipo"}
+                className="mx-auto mb-4 object-contain h-32 w-auto max-w-48"
+              />
+              <h1 className="text-2xl font-bold mb-2">{config?.tenant_name || "¡Hola!"}</h1>
+              <p className="text-orange-100 text-sm mb-6 max-w-xs mx-auto">
+                {config?.business_description ||
+                  `Mesa ${unpaidOrders?.table_number || "X"} • Explora nuestro delicioso menú y haz tu primer pedido`}
+              </p>
+            </div>
+
+
             </div>
 
             {/* Ofertas Carousel en lugar de los cuadrados */}
