@@ -1,3 +1,4 @@
+// src/components/ErrorModal.tsx - versión mejorada
 import React from 'react';
 import { X, AlertTriangle, Phone } from 'lucide-react';
 
@@ -6,15 +7,23 @@ interface ErrorModalProps {
   onClose: () => void;
   title?: string;
   message: string;
+  showContactWaiter?: boolean;
 }
 
 export function ErrorModal({ 
   isOpen, 
   onClose, 
   title = 'Error', 
-  message 
+  message,
+  showContactWaiter = true
 }: ErrorModalProps) {
   if (!isOpen) return null;
+
+  const handleContactWaiter = () => {
+    // Aquí puedes integrar la lógica para contactar al mozo
+    console.log('Contactando al mozo...');
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -35,13 +44,15 @@ export function ErrorModal({
           
           {/* Contact Waiter Button */}
           <div className="space-y-3">
-            <button
-              onClick={onClose}
-              className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-4 rounded-2xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-3"
-            >
-              <Phone className="w-5 h-5" />
-              Contactar al Mozo
-            </button>
+            {showContactWaiter && (
+              <button
+                onClick={handleContactWaiter}
+                className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-4 rounded-2xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-3"
+              >
+                <Phone className="w-5 h-5" />
+                Contactar al Mozo
+              </button>
+            )}
             
             <button
               onClick={onClose}

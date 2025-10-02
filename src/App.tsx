@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+// src/App.tsx
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useThemeStore } from './stores/useThemeStore';
 import { LoadingPage } from './pages/LoadingPage';
@@ -12,9 +13,11 @@ import { OrderConfirmationPage } from './pages/OrderConfirmationPage';
 import { IdentificationPage } from './pages/IdentificationPage';
 import { PaymentSplitPage } from './pages/PaymentSplitPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ErrorModal } from './components/ErrorModal';
 
 function App() {
   const { isDark } = useThemeStore();
+  const [globalError, setGlobalError] = useState<string | null>(null);
 
   useEffect(() => {
     // Apply theme to document
@@ -32,6 +35,27 @@ function App() {
     }
   }, [isDark]);
 
+  // Manejar errores globales
+  useEffect(() => {
+    const handleGlobalError = (event: ErrorEvent) => {
+      console.error('Global error:', event.error);
+      setGlobalError('Ha ocurrido un error inesperado. Por favor contacta al mozo.');
+    };
+
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      setGlobalError('Ha ocurrido un error inesperado. Por favor contacta al mozo.');
+    };
+
+    window.addEventListener('error', handleGlobalError);
+    window.addEventListener('unhandledrejection', handleRejection);
+
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -39,7 +63,7 @@ function App() {
           {/* Identification Route - for JWT tokens */}
           <Route path="/:token" element={<IdentificationPage />} />
           
-          {/* Error Route */}
+          {/* Error Route (mantener para errores críticos) */}
           <Route path="/error" element={<ErrorPage />} />
           
           {/* Protected Routes */}
@@ -112,6 +136,16 @@ function App() {
           {/* Catch all route */}
           <Route path="*" element={<Navigate to="/error" replace />} />
         </Routes>
+
+        {/* Error Modal Global */}
+        {globalError && (
+          <ErrorModal
+            isOpen={!!globalError}
+            onClose={() => setGlobalError(null)}
+            title="Error del Sistema"
+            message={globalError}
+          />
+        )}
       </div>
     </Router>
   );

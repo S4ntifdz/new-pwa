@@ -5,6 +5,8 @@ import { QRModal } from '../components/QRModal';
 import { RatingModal } from '../components/RatingModal';
 import { CreditCard, DollarSign, QrCode, Smartphone, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import { apiClient } from '../lib/api';
+import { ErrorModal } from '../components/ErrorModal';
+import { useErrorModal } from '../hooks/useErrorModal';
 
 interface PaymentMethod {
   id: string;
@@ -16,6 +18,7 @@ interface PaymentMethod {
 export function PaymentPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
+  const { showErrorModal, errorModalMessage, showError, hideError } = useErrorModal();
   const location = useLocation();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('cash');
   const [processing, setProcessing] = useState(false);
@@ -30,7 +33,7 @@ export function PaymentPage() {
   const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
   const [mpLoading, setMpLoading] = useState(false);
   const mpBrickRef = useRef<HTMLDivElement>(null);
-  
+
   const { paymentType, unpaidOrders } = location.state || {};
   const [ordersToShow, setOrdersToShow] = useState(unpaidOrders);
 
@@ -126,8 +129,8 @@ const handlePayment = async () => {
       }
     } catch (error) {
       console.error('Error creating payment:', error);
-      alert('Error al procesar el pago. Intenta nuevamente.');
-    } finally {
+showError('Parece que alguien en la mesa ya pidio la cuenta. ¡El mozo llegará pronto!.');
+ } finally {
       setProcessing(false);
     }
   };
@@ -511,7 +514,12 @@ const handlePayment = async () => {
         )}
       </div>
       </div>
-
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={hideError}
+        title="Error de Pago"
+        message={errorModalMessage}
+      />
       <QRModal
         isOpen={showQRModal}
         onClose={handleQRModalClose}

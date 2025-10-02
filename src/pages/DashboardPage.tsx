@@ -13,6 +13,7 @@ import { apiClient } from "../lib/api"
 import type { ClientUnpaidOrdersResponse, Offer } from "../types"
 import { Plus, CreditCard, Phone, X, Bot, UtensilsCrossed, Clock, CheckCircle2, Sparkles } from "lucide-react"
 import defaultLogo from '../media/Comandaya_bk.png';
+import { ErrorModal } from "../components/ErrorModal"
 
 export function DashboardPage() {
   const { tableId } = useParams<{ tableId: string }>()
@@ -29,6 +30,10 @@ export function DashboardPage() {
   const [showCancelWaiterModal, setShowCancelWaiterModal] = useState(false)
   const [showChatbot, setShowChatbot] = useState(false)
   const [config, setConfig] = useState<any>(null);
+
+  // Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorModalMessage, setErrorModalMessage] = useState<string>("");
 
   // Poll for order updates every 3 seconds
   useEffect(() => {
@@ -96,36 +101,46 @@ export function DashboardPage() {
   const handleCallWaiter = async () => {
     setShowWaiterModal(true)
   }
+const confirmCallWaiter = async () => {
+  if (!tableId) return
 
-
-  const confirmCallWaiter = async () => {
-    if (!tableId) return
-
-    try {
-      const response = await apiClient.callWaiter(tableId)
-      if (response.calling) {
-        setWaiterCalled(true)
-        setShowWaiterModal(false)
-      }
-    } catch (error) {
-      console.error("Error calling waiter:", error)
-      alert("Error al llamar al mozo. Intenta nuevamente.")
+  try {
+    const response = await apiClient.callWaiter(tableId)
+    if (response.calling) {
+      setWaiterCalled(true)
       setShowWaiterModal(false)
     }
+  } catch (error) {
+    console.error("Error calling waiter:", error)
+    setErrorModalMessage("Error al llamar al mozo. Intenta nuevamente.")
+    setShowErrorModal(true)
+    setShowWaiterModal(false)
   }
+}
 
-  const handleCancelWaiter = async () => {
-    if (!tableId) return
+const handleCancelWaiter = async () => {
+  if (!tableId) return
 
-    try {
-      await apiClient.cancelWaiterCall()
-      setWaiterCalled(false)
-      setShowCancelWaiterModal(false)
-    } catch (error) {
-      console.error("Error canceling waiter call:", error)
-      alert("Error al cancelar llamado. Intenta nuevamente.")
-    }
+  try {
+    await apiClient.cancelWaiterCall()
+    setWaiterCalled(false)
+    setShowCancelWaiterModal(false)
+  } catch (error) {
+    console.error("Error canceling waiter call:", error)
+    setErrorModalMessage("Error al cancelar llamado. Intenta nuevamente.")
+    setShowErrorModal(true)
   }
+}
+
+// Agregar el ErrorModal al JSX
+{showErrorModal && (
+  <ErrorModal
+    isOpen={showErrorModal}
+    onClose={() => setShowErrorModal(false)}
+    title="Error"
+    message={errorModalMessage}
+  />
+)}
 
   const getStatusText = (status: string) => {
     const statusMap: { [key: string]: string } = {
